@@ -1,0 +1,21 @@
+[project]
+name = "odoo-addons-oca-tier-validation"
+version = "19.0.20260721.0"
+dependencies = [
+    "odoo-addon-account_move_tier_validation==19.0.*",
+    "odoo-addon-base_tier_validation==19.0.*",
+    "odoo-addon-base_tier_validation_confirm_auth==19.0.*",
+    "odoo-addon-base_tier_validation_correction==19.0.*",
+    "odoo-addon-base_tier_validation_formula==19.0.*",
+    "odoo-addon-base_tier_validation_forward==19.0.*",
+    "odoo-addon-base_tier_validation_server_action==19.0.*",
+    "odoo-addon-purchase_request_tier_validation==19.0.*",
+    "odoo-addon-purchase_tier_validation==19.0.*",
+    "odoo-addon-sale_tier_validation==19.0.*",
+    "odoo-addon-stock_picking_tier_validation==19.0.*",
+]
+classifiers=[
+    "Programming Language :: Python",
+    "Framework :: Odoo",
+    "Framework :: Odoo :: 19.0",
+]

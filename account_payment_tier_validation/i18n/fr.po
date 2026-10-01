@@ -1,0 +1,94 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# * account_payment_tier_validation
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-16 21:30+0000\n"
+"PO-Revision-Date: 2026-08-16 21:30+0000\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. module: account_payment_tier_validation
+#: model:ir.module.module,shortdesc:account_payment_tier_validation.module_meta_information
+msgid "Payment Tier Validation"
+msgstr "Validation des paiements"
+
+#. module: account_payment_tier_validation
+#: model:ir.module.module,summary:account_payment_tier_validation.module_meta_information
+msgid "Extends the functionality of Payment to support a tier validation process."
+msgstr "Ajoute un workflow de validation multi-niveaux aux paiements."
+
+#. module: account_payment_tier_validation
+#: model:ir.model,name:account_payment_tier_validation.model_account_payment
+msgid "Payments"
+msgstr "Paiements"
+
+#. module: account_payment_tier_validation
+#: model:ir.model,name:account_payment_tier_validation.model_account_payment_register
+msgid "Register Payment"
+msgstr "Enregistrer un paiement"
+
+#. module: account_payment_tier_validation
+#: model:ir.model,name:account_payment_tier_validation.model_tier_definition
+msgid "Tier Definition"
+msgstr "Définition de niveau"
+
+#. module: account_payment_tier_validation
+#. odoo-python
+#: code:addons/account_payment_tier_validation/models/account_payment.py:0
+msgid "Vendor Payment"
+msgstr "Paiement fournisseur"
+
+#. module: account_payment_tier_validation
+#. odoo-python
+#: code:addons/account_payment_tier_validation/models/account_payment.py:0
+msgid "Customer Payment"
+msgstr "Paiement client"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "Needs my Review"
+msgstr "Nécessite ma revue"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "My Payments to review"
+msgstr "Mes paiements à revoir"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "No Validation Requested"
+msgstr "Aucune validation demandée"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "Payments where no validation has been requested"
+msgstr "Paiements sans demande de validation"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "Validation In Progress"
+msgstr "Validation en cours"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "Payments pending to validate"
+msgstr "Paiements en attente de validation"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "Validated"
+msgstr "Validé"
+
+#. module: account_payment_tier_validation
+#: model_terms:ir.ui.view,arch_db:account_payment_tier_validation.view_account_payment_search
+msgid "Payments validated and ready to be confirmed"
+msgstr "Paiements validés et prêts à être confirmés"

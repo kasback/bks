@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_bks_purchase_fnp_user,bks.purchase.fnp user,model_bks_purchase_fnp,account.group_account_readonly,1,0,0,0
+access_bks_purchase_fnp_invoice,bks.purchase.fnp invoice,model_bks_purchase_fnp,account.group_account_invoice,1,0,0,0
+access_bks_purchase_fnp_manager,bks.purchase.fnp manager,model_bks_purchase_fnp,account.group_account_manager,1,1,1,1

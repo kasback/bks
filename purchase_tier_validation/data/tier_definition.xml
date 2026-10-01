@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <!--
+        BDC:
+          1. Responsable Achats (tous montants)
+          2. Co-ordonnateur (tous montants)
+          3. Directeur du Pole si 40 000 < montant <= 700 000
+             President si montant > 700 000
+          Aucune 3e signature si montant <= 40 000
+    -->
+    <record id="tier_bdc_signature_responsable_achats" model="tier.definition">
+        <field name="name">BDC - 1ère signature Responsable Achats</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field name="definition_type">domain</field>
+        <field name="definition_domain">[]</field>
+        <field name="review_type">group</field>
+        <field
+            name="reviewer_group_id"
+            ref="purchase_request_tier_validation.group_responsable_achats"
+        />
+        <field name="sequence">30</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+
+    <record id="tier_bdc_signature_coordonnateur" model="tier.definition">
+        <field name="name">BDC - 2ème signature Co-ordonnateur</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field name="definition_type">domain</field>
+        <field name="definition_domain">[]</field>
+        <field name="review_type">group</field>
+        <field
+            name="reviewer_group_id"
+            ref="purchase_request_tier_validation.group_coordonnateur"
+        />
+        <field name="sequence">20</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+
+    <record id="tier_bdc_signature_directeur_pole" model="tier.definition">
+        <field name="name">BDC - 3ème signature Directeur du Pôle (40-700 KDH)</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field name="definition_type">domain</field>
+        <field
+            name="definition_domain"
+        >[('amount_total_cc', '&gt;', 40000), ('amount_total_cc', '&lt;=', 700000)]</field>
+        <field name="review_type">group</field>
+        <field
+            name="reviewer_group_id"
+            ref="purchase_request_tier_validation.group_directeur_pole"
+        />
+        <field name="sequence">10</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+
+    <record id="tier_bdc_signature_president" model="tier.definition">
+        <field name="name">BDC - 3ème signature Président (&gt; 700 KDH)</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field name="definition_type">domain</field>
+        <field name="definition_domain">[('amount_total_cc', '&gt;', 700000)]</field>
+        <field name="review_type">group</field>
+        <field
+            name="reviewer_group_id"
+            ref="purchase_request_tier_validation.group_president"
+        />
+        <field name="sequence">10</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+</odoo>

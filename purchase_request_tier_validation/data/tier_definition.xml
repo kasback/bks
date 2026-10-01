@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <!--
+        DA: verification par champ
+          1. Ordonnateur = demandeur (requested_by)
+          2. Approbateur = superieur hierarchique (assigned_to, auto)
+          3. Responsable Achats = groupe
+    -->
+    <record id="tier_da_signature_ordonnateur" model="tier.definition">
+        <field name="name">DA - Signature Ordonnateur (demandeur)</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field name="definition_type">domain</field>
+        <field name="definition_domain">[]</field>
+        <field name="review_type">field</field>
+        <field
+            name="reviewer_field_id"
+            ref="purchase_request.field_purchase_request__requested_by"
+        />
+        <field name="sequence">30</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+
+    <record id="tier_da_signature_coordonnateur" model="tier.definition">
+        <field name="name">DA - Signature supérieur hiérarchique</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field name="definition_type">domain</field>
+        <field name="definition_domain">[]</field>
+        <field name="review_type">field</field>
+        <field
+            name="reviewer_field_id"
+            ref="purchase_request.field_purchase_request__assigned_to"
+        />
+        <field name="sequence">20</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+
+    <record id="tier_da_validation_responsable_achats" model="tier.definition">
+        <field name="name">DA - Validation Responsable Achats</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field name="definition_type">domain</field>
+        <field name="definition_domain">[]</field>
+        <field name="review_type">group</field>
+        <field name="reviewer_group_id" ref="group_responsable_achats" />
+        <field name="sequence">10</field>
+        <field name="approve_sequence" eval="True" />
+        <field name="notify_on_pending" eval="True" />
+        <field name="has_comment" eval="True" />
+        <field name="company_id" eval="False" />
+    </record>
+</odoo>
