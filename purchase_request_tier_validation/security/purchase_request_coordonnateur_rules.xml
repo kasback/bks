@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Sans le groupe « Responsable DA », le co-ordonnateur accède aux DA à valider. -->
+    <record id="purchase_request_coordonnateur_reviewer_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : DA en circuit de validation</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field name="groups" eval="[(4, ref('group_coordonnateur'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="True" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field
+            name="domain_force"
+        >['|', ('reviewer_ids', 'in', user.id), ('message_partner_ids', 'in', [user.partner_id.id])]</field>
+    </record>
+    <record id="purchase_request_line_coordonnateur_reviewer_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : lignes DA en validation</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request_line" />
+        <field name="groups" eval="[(4, ref('group_coordonnateur'))]" />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field
+            name="domain_force"
+        >['|', ('request_id.reviewer_ids', 'in', user.id), ('request_id.message_partner_ids', 'in', [user.partner_id.id])]</field>
+    </record>
+</odoo>

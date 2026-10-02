@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_purchase_request_form_bks_approval" model="ir.ui.view">
+        <field name="name">purchase.request.form.bks.approval</field>
+        <field name="model">purchase.request</field>
+        <field name="inherit_id" ref="purchase_request.view_purchase_request_form" />
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <button name="button_draft" position="attributes">
+                <attribute
+                    name="groups"
+                >purchase_request_tier_validation.group_bks_da_reset</attribute>
+            </button>
+            <button name="button_in_progress" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </button>
+            <button name="button_rejected" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </button>
+        </field>
+    </record>
+</odoo>

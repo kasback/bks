@@ -19,12 +19,57 @@ class PurchaseRequest(models.Model):
         string="Approbateur",
         compute="_compute_assigned_to",
         store=True,
-        readonly=False,
+        readonly=True,
         precompute=True,
         domain="[('share', '=', False)]",
         help="Renseigné automatiquement avec le supérieur hiérarchique "
         "de la fiche employé du demandeur.",
     )
+
+    _BKS_LOCK_VALIDATION_STATUSES = frozenset(
+        {"waiting", "pending", "validated", "rejected"}
+    )
+
+    name = fields.Char(
+        default=False,
+        readonly=True,
+    )
+    is_name_editable = fields.Boolean(
+        compute="_compute_is_name_editable",
+        default=False,
+    )
+    bks_can_request_pr_validation = fields.Boolean(
+        compute="_compute_bks_can_request_pr_validation",
+    )
+
+    @api.depends("requested_by")
+    @api.depends_context("uid")
+    def _compute_bks_can_request_pr_validation(self):
+        user = self.env.user
+        is_ordonnateur = user.has_group(
+            "purchase_request_tier_validation.group_ordonnateur"
+        )
+        is_responsable = user.has_group(
+            "purchase_request_tier_validation.group_responsable_achats"
+        )
+        for rec in self:
+            rec.bks_can_request_pr_validation = (
+                is_ordonnateur
+                or is_responsable
+                or rec.requested_by == user
+            )
+
+    @api.depends()
+    def _compute_is_name_editable(self):
+        for rec in self:
+            rec.is_name_editable = False
+
+    @api.depends("state", "validation_status")
+    def _compute_is_editable(self):
+        super()._compute_is_editable()
+        for rec in self:
+            if rec.validation_status in self._BKS_LOCK_VALIDATION_STATUSES:
+                rec.is_editable = False
 
     @api.model
     def _get_under_validation_exceptions(self):
@@ -60,6 +105,24 @@ class PurchaseRequest(models.Model):
     def _compute_assigned_to(self):
         for rec in self:
             rec.assigned_to = rec._get_requester_manager_user()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        cleaned = []
+        new_labels = {self.env._("New"), "New", "Nouveau"}
+        for vals in vals_list:
+            vals = {k: v for k, v in vals.items() if k != "assigned_to"}
+            if not vals.get("name") or vals.get("name") in new_labels:
+                vals["name"] = self._get_default_name()
+            cleaned.append(vals)
+        return super().create(cleaned)
+
+    def write(self, vals):
+        if "assigned_to" in vals:
+            vals = {k: v for k, v in vals.items() if k != "assigned_to"}
+        if "name" in vals:
+            vals = {k: v for k, v in vals.items() if k != "name"}
+        return super().write(vals)
 
     def request_validation(self):
         for rec in self:

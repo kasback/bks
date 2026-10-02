@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        Liste des BDC : un co-ordonnateur ne voit que les bons
+        de son unité (département de sa fiche employé, ou département
+        dont il est le manager). Le bouton Valider n'est pas concerné.
+        Les autres rôles achats conservent la liste complète.
+    -->
+    <record id="purchase_order_coordonnateur_department_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : BDC de son département</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_coordonnateur'))]"
+        />
+        <field name="domain_force">[
+            '|',
+            ('bks_operation_department_id', 'child_of', user.employee_id.department_id.ids),
+            ('bks_operation_department_id.manager_id.user_id', '=', user.id)
+        ]</field>
+    </record>
+    <record id="purchase_order_line_coordonnateur_department_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : lignes BDC de son département</field>
+        <field name="model_id" ref="purchase.model_purchase_order_line" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_coordonnateur'))]"
+        />
+        <field name="domain_force">[
+            '|',
+            ('order_id.bks_operation_department_id', 'child_of', user.employee_id.department_id.ids),
+            ('order_id.bks_operation_department_id.manager_id.user_id', '=', user.id)
+        ]</field>
+    </record>
+    <record id="purchase_order_achats_all_rule" model="ir.rule">
+        <field name="name">Achats : tous les BDC</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field
+            name="groups"
+            eval="[
+                (4, ref('purchase.group_purchase_manager')),
+                (4, ref('purchase_request_tier_validation.group_acheteur')),
+                (4, ref('purchase_request_tier_validation.group_responsable_achats')),
+            ]"
+        />
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="purchase_order_line_achats_all_rule" model="ir.rule">
+        <field name="name">Achats : toutes les lignes BDC</field>
+        <field name="model_id" ref="purchase.model_purchase_order_line" />
+        <field
+            name="groups"
+            eval="[
+                (4, ref('purchase.group_purchase_manager')),
+                (4, ref('purchase_request_tier_validation.group_acheteur')),
+                (4, ref('purchase_request_tier_validation.group_responsable_achats')),
+            ]"
+        />
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>
