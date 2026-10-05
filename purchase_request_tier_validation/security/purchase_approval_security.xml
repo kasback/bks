@@ -65,9 +65,12 @@
         <field name="privilege_id" ref="res_groups_privilege_bks_purchase_approval" />
         <field
             name="implied_ids"
-            eval="[(4, ref('purchase.group_purchase_user'))]"
+            eval="[
+                (4, ref('purchase.group_purchase_user')),
+                (4, ref('purchase_request.group_purchase_request_user')),
+            ]"
         />
-        <field name="comment">Établit les bons de commande.</field>
+        <field name="comment">Établit les bons de commande et les demandes de prix depuis les DA approuvées.</field>
     </record>
 
     <record id="group_responsable_achats" model="res.groups">

@@ -41,6 +41,17 @@ class PurchaseRequest(models.Model):
     bks_can_request_pr_validation = fields.Boolean(
         compute="_compute_bks_can_request_pr_validation",
     )
+    bks_can_create_rfq = fields.Boolean(
+        compute="_compute_bks_can_create_rfq",
+    )
+
+    @api.depends_context("uid")
+    def _compute_bks_can_create_rfq(self):
+        can = self.env.user.has_group(
+            "purchase_request_tier_validation.group_acheteur"
+        ) or self.env.user.has_group("base.group_system")
+        for rec in self:
+            rec.bks_can_create_rfq = can
 
     @api.depends("requested_by")
     @api.depends_context("uid")

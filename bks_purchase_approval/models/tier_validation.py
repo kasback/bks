@@ -2,11 +2,16 @@
 
 from lxml import etree
 
-from odoo.exceptions import AccessError, UserError
+from odoo.exceptions import AccessError
 from odoo import api, fields, models
 from odoo.tools.misc import frozendict
 
 _BKS_TIER_FORM_MODELS = frozenset({"purchase.request", "purchase.order"})
+_BKS_COORD_GROUP_XMLID = "purchase_request_tier_validation.group_coordonnateur"
+_BKS_RESTART_VALIDATION_CONFIRM = (
+    "Recommencer la validation réinitialise le circuit en cours. "
+    "Voulez-vous continuer ?"
+)
 _RESTART_GROUP_XMLID = (
     "purchase_request_tier_validation.group_bks_tier_restart_validation"
 )
@@ -54,6 +59,18 @@ class TierValidation(models.AbstractModel):
 
     def _bks_can_restart_validation(self):
         return self.env.user.has_group(_RESTART_GROUP_XMLID)
+
+    def _bks_refresh_coordonnateur_reviewers(self):
+        """Recalcule les validateurs co-ordonnateur après changement d'unité."""
+        coord_group = self.env.ref(_BKS_COORD_GROUP_XMLID, raise_if_not_found=False)
+        if not coord_group or self._name not in _BKS_TIER_FORM_MODELS:
+            return
+        reviews = self.review_ids.filtered(
+            lambda review: review.status in ("waiting", "pending")
+            and review.reviewer_group_id == coord_group
+        )
+        if reviews:
+            reviews._compute_reviewer_ids()
 
     def restart_validation(self):
         if self._name in _BKS_TIER_FORM_MODELS:
@@ -120,13 +137,6 @@ class TierValidation(models.AbstractModel):
                     )
                 rec._notify_restarted_review()
 
-    def reject_tier(self):
-        if self._name in _BKS_TIER_FORM_MODELS:
-            raise UserError(
-                self.env._("Le rejet n'est pas autorisé sur ce document.")
-            )
-        return super().reject_tier()
-
     def _bks_is_coordonnateur_only(self):
         """Co-ordonnateur sans rôle achats / ordonnateur / admin."""
         user = self.env.user
@@ -156,7 +166,6 @@ class TierValidation(models.AbstractModel):
             drop = [
                 "restart_validation",
                 "request_validation",
-                "reject_tier",
                 "button_draft",
                 "button_done",
                 "button_in_progress",
@@ -183,8 +192,6 @@ class TierValidation(models.AbstractModel):
                     "field", name="bks_can_restart_validation", invisible="1"
                 )
                 header[0].insert(0, field)
-        for button in doc.xpath("//button[@name='reject_tier']"):
-            button.set("invisible", "1")
         if model_name == "purchase.request":
             for button in doc.xpath("//button[@name='request_validation']"):
                 base_invisible = button.get("invisible") or "False"
@@ -216,7 +223,13 @@ class TierValidation(models.AbstractModel):
         fields_tuple = tuple(all_models.get(model_name, ()))
         extra_fields = ["bks_can_restart_validation", "tier_review_all_ids"]
         if model_name == "purchase.request":
-            extra_fields.append("bks_can_request_pr_validation")
+            extra_fields.extend(
+                [
+                    "bks_can_request_pr_validation",
+                    "bks_can_create_rfq",
+                    "bks_operation_department_id",
+                ]
+            )
         missing = [name for name in extra_fields if name not in fields_tuple]
         if missing:
             all_models[model_name] = fields_tuple + tuple(missing)
@@ -224,8 +237,22 @@ class TierValidation(models.AbstractModel):
         return res
 
     @api.model
+    def _bks_patch_restart_validation_confirm(self, res):
+        doc = etree.XML(res["arch"])
+        confirm = self.env._(_BKS_RESTART_VALIDATION_CONFIRM)
+        for button in doc.xpath("//button[@name='restart_validation']"):
+            button.set("confirm", confirm)
+        if not doc.xpath("//button[@name='restart_validation']"):
+            return res
+        patched = dict(res)
+        patched["arch"] = etree.tostring(doc, encoding="unicode")
+        return patched
+
+    @api.model
     def get_view(self, view_id=None, view_type="form", **options):
         res = super().get_view(view_id=view_id, view_type=view_type, **options)
-        if view_type == "form" and self._name in _BKS_TIER_FORM_MODELS:
-            res = self._bks_patch_tier_form_arch(self._name, res)
+        if view_type == "form":
+            res = self._bks_patch_restart_validation_confirm(res)
+            if self._name in _BKS_TIER_FORM_MODELS:
+                res = self._bks_patch_tier_form_arch(self._name, res)
         return res

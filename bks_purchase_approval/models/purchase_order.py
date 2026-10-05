@@ -1,11 +1,22 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError
+
+_BKS_VENDOR_BILL_CREATOR_GROUPS = (
+    "base.group_system",
+    "account.group_account_invoice",
+    "account.group_account_manager",
+    "purchase_request_tier_validation.group_responsable_achats",
+)
 
 
 class PurchaseOrder(models.Model):
     _inherit = "purchase.order"
 
+    bks_can_create_vendor_bill = fields.Boolean(
+        compute="_compute_bks_can_create_vendor_bill",
+    )
     bks_operation_department_id = fields.Many2one(
         comodel_name="hr.department",
         string="Unité opérationnelle (DA)",
@@ -13,6 +24,35 @@ class PurchaseOrder(models.Model):
         store=True,
         help="Département du demandeur (ordonnateur) sur les DA liées à ce BDC.",
     )
+
+    @api.model
+    def _bks_user_can_create_vendor_bill(self):
+        user = self.env.user
+        return any(user.has_group(xmlid) for xmlid in _BKS_VENDOR_BILL_CREATOR_GROUPS)
+
+    @api.model
+    def _bks_check_can_create_vendor_bill(self):
+        if not self._bks_user_can_create_vendor_bill():
+            raise UserError(
+                _(
+                    "La création de factures fournisseur est réservée aux "
+                    "profils Comptabilité fournisseurs ou Responsable Achats."
+                )
+            )
+
+    @api.depends_context("uid")
+    def _compute_bks_can_create_vendor_bill(self):
+        can = self._bks_user_can_create_vendor_bill()
+        for order in self:
+            order.bks_can_create_vendor_bill = can
+
+    def action_create_invoice(self, attachment_ids=False):
+        self._bks_check_can_create_vendor_bill()
+        return super().action_create_invoice(attachment_ids=attachment_ids)
+
+    def _deduct_payment(self, grouped=False, final=False, date=None):
+        self._bks_check_can_create_vendor_bill()
+        return super()._deduct_payment(grouped=grouped, final=final, date=date)
 
     @api.depends(
         "order_line.purchase_request_lines.request_id.requested_by",
@@ -43,6 +83,7 @@ class PurchaseOrder(models.Model):
                     department = employee.department_id
                     break
             order.bks_operation_department_id = department
+        self._bks_refresh_coordonnateur_reviewers()
 
     @api.model
     def _get_under_validation_exceptions(self):

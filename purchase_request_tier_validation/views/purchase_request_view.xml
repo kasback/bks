@@ -18,7 +18,17 @@
             </button>
             <field name="state" position="after">
                 <field name="validation_status" invisible="1" />
+                <field name="bks_can_create_rfq" invisible="1" />
             </field>
+            <button
+                name="%(purchase_request.action_purchase_request_line_make_purchase_order)d"
+                position="attributes"
+            >
+                <attribute name="groups" />
+                <attribute
+                    name="invisible"
+                >state not in ('approved', 'in_progress') or not bks_can_create_rfq</attribute>
+            </button>
             <button name="button_to_approve" position="attributes">
                 <attribute name="invisible">1</attribute>
             </button>
@@ -33,11 +43,6 @@
             <button name="button_rejected" position="attributes">
                 <attribute name="invisible">1</attribute>
             </button>
-            <xpath expr="//header/button[@type='action']" position="attributes">
-                <attribute
-                    name="groups"
-                >purchase_request_tier_validation.group_responsable_achats</attribute>
-            </xpath>
             <button name="button_done" position="attributes">
                 <attribute name="string">Terminé</attribute>
                 <attribute

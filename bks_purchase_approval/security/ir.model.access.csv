@@ -1,0 +1,4 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_account_move_ordonnateur,account.move ordonnateur lecture,account.model_account_move,purchase_request_tier_validation.group_ordonnateur,1,0,0,0
+access_account_move_line_ordonnateur,account.move.line ordonnateur lecture,account.model_account_move_line,purchase_request_tier_validation.group_ordonnateur,1,0,0,0
+access_account_journal_ordonnateur,account.journal ordonnateur lecture,account.model_account_journal,purchase_request_tier_validation.group_ordonnateur,1,0,0,0

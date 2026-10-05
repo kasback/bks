@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        Factures fournisseur : le co-ordonnateur ne voit que celles de son unité
+        (même logique que DA / BDC). Les profils achats élargis conservent la
+        liste complète des factures fournisseur autorisées par le module Achats.
+
+        Ordonnateur : lecture seule des factures liées à un BDC issu de ses DA.
+    -->
+    <record id="account_move_ordonnateur_read_rule" model="ir.rule">
+        <field name="name">Ordonnateur : factures de ses demandes d'achat</field>
+        <field name="model_id" ref="account.model_account_move" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_ordonnateur'))]"
+        />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field name="domain_force">[
+            ('move_type', 'in', ('in_invoice', 'in_refund', 'in_receipt')),
+            ('invoice_line_ids.purchase_line_id.order_id.order_line.purchase_request_lines.request_id.requested_by', '=', user.id)
+        ]</field>
+    </record>
+    <record id="account_move_line_ordonnateur_read_rule" model="ir.rule">
+        <field name="name">Ordonnateur : lignes factures de ses demandes d'achat</field>
+        <field name="model_id" ref="account.model_account_move_line" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_ordonnateur'))]"
+        />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="False" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field name="domain_force">[
+            ('move_id.move_type', 'in', ('in_invoice', 'in_refund', 'in_receipt')),
+            ('move_id.invoice_line_ids.purchase_line_id.order_id.order_line.purchase_request_lines.request_id.requested_by', '=', user.id)
+        ]</field>
+    </record>
+    <record id="account_move_coordonnateur_department_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : factures de son département</field>
+        <field name="model_id" ref="account.model_account_move" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_coordonnateur'))]"
+        />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="True" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field name="domain_force">[
+            ('move_type', 'in', ('in_invoice', 'in_refund', 'in_receipt')),
+            '|',
+            ('bks_operation_department_id', 'child_of', user.employee_id.department_id.ids),
+            ('bks_operation_department_id.manager_id.user_id', '=', user.id)
+        ]</field>
+    </record>
+    <record id="account_move_line_coordonnateur_department_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : lignes factures de son département</field>
+        <field name="model_id" ref="account.model_account_move_line" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_coordonnateur'))]"
+        />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="True" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field name="domain_force">[
+            ('move_id.move_type', 'in', ('in_invoice', 'in_refund', 'in_receipt')),
+            '|',
+            ('move_id.bks_operation_department_id', 'child_of', user.employee_id.department_id.ids),
+            ('move_id.bks_operation_department_id.manager_id.user_id', '=', user.id)
+        ]</field>
+    </record>
+    <record id="account_move_achats_all_rule" model="ir.rule">
+        <field name="name">Achats : toutes les factures fournisseur</field>
+        <field name="model_id" ref="account.model_account_move" />
+        <field
+            name="groups"
+            eval="[
+                (4, ref('purchase.group_purchase_manager')),
+                (4, ref('purchase_request_tier_validation.group_acheteur')),
+                (4, ref('purchase_request_tier_validation.group_responsable_achats')),
+            ]"
+        />
+        <field name="domain_force">[
+            ('move_type', 'in', ('in_invoice', 'in_refund', 'in_receipt'))
+        ]</field>
+    </record>
+    <record id="account_move_line_achats_all_rule" model="ir.rule">
+        <field name="name">Achats : toutes les lignes de factures fournisseur</field>
+        <field name="model_id" ref="account.model_account_move_line" />
+        <field
+            name="groups"
+            eval="[
+                (4, ref('purchase.group_purchase_manager')),
+                (4, ref('purchase_request_tier_validation.group_acheteur')),
+                (4, ref('purchase_request_tier_validation.group_responsable_achats')),
+            ]"
+        />
+        <field name="domain_force">[
+            ('move_id.move_type', 'in', ('in_invoice', 'in_refund', 'in_receipt'))
+        ]</field>
+    </record>
+</odoo>
