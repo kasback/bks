@@ -96,7 +96,16 @@ class BksPurchaseFnp(models.Model):
 
     @api.model
     def _line_unit_price_ht(self, po_line):
-        return po_line._get_gross_price_unit()
+        price = po_line._get_gross_price_unit()
+        if not po_line.company_id.currency_id.is_zero(price):
+            return price
+        for pr_line in po_line.purchase_request_lines:
+            if float_is_zero(pr_line.product_qty, precision_digits=6):
+                continue
+            unit = pr_line.estimated_cost / pr_line.product_qty
+            if not po_line.currency_id.is_zero(unit):
+                return unit
+        return price
 
     @api.model
     def _amount_from_qty(self, po_line, qty):
@@ -112,12 +121,16 @@ class BksPurchaseFnp(models.Model):
 
     @api.model
     def _create_provision_from_picking(self, picking):
+        """Génération automatique à la réception : droits compta non requis."""
         picking.ensure_one()
+        sudo_self = self.sudo()
+        picking = picking.sudo()
         company = picking.company_id
-        journal, fnp_account = self._get_fnp_accounts(company)
+        journal, fnp_account = sudo_self._get_fnp_accounts(company)
 
         line_vals = []
-        fnp_records = self.env["bks.purchase.fnp"]
+        fnp_records = sudo_self.env["bks.purchase.fnp"]
+        zero_amount_labels = []
         precision = self.env["decimal.precision"].precision_get("Product Unit")
 
         for move in picking.move_ids.filtered(
@@ -129,11 +142,12 @@ class BksPurchaseFnp(models.Model):
             qty = move.product_uom._compute_quantity(move.quantity, po_line.product_uom_id)
             if float_is_zero(qty, precision_digits=precision):
                 continue
-            amount = self._amount_from_qty(po_line, qty)
+            amount = sudo_self._amount_from_qty(po_line, qty)
             if company.currency_id.is_zero(amount):
+                zero_amount_labels.append(po_line.product_id.display_name)
                 continue
-            expense_account = self._get_expense_account(po_line)
-            fnp = self.create(
+            expense_account = sudo_self._get_expense_account(po_line)
+            fnp = sudo_self.create(
                 {
                     "company_id": company.id,
                     "partner_id": picking.partner_id.id,
@@ -153,9 +167,19 @@ class BksPurchaseFnp(models.Model):
             )
 
         if not fnp_records:
-            return self.env["account.move"]
+            if zero_amount_labels:
+                picking.message_post(
+                    body=_(
+                        "Aucune provision FNP générée : montant nul pour %(products)s. "
+                        "Renseignez le prix unitaire sur le bon de commande (ou le coût "
+                        "estimé sur la demande d'achat), puis cliquez sur "
+                        "« Générer la FNP » sur cette réception.",
+                        products=", ".join(sorted(set(zero_amount_labels))),
+                    ),
+                )
+            return sudo_self.env["account.move"]
 
-        move = self.env["account.move"].create(
+        move = sudo_self.env["account.move"].create(
             {
                 "move_type": "entry",
                 "journal_id": journal.id,

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="group_bks_finance_move_credit_draft" model="res.groups">
+        <field name="name">Avoir et remise en brouillon (factures)</field>
+        <field name="sequence">7</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Autorise les boutons « Avoir » et « Remettre en brouillon » sur les factures et écritures. Réservé à la direction financière (comptabilité / administration).</field>
+    </record>
+</odoo>

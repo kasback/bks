@@ -12,6 +12,7 @@
             <button
                 name="restart_validation"
                 string="Restart Validation"
+                confirm="Recommencer la validation réinitialise le circuit en cours. Voulez-vous continuer ?"
                 invisible="not review_ids or hide_reviews"
                 type="object"
             />

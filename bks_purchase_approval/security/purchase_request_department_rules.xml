@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!--
+        Liste des DA : même logique que les BDC — le co-ordonnateur ne voit
+        que les demandes de son unité (département employé ou département géré).
+    -->
+    <record id="purchase_request_coordonnateur_department_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : DA de son département</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_coordonnateur'))]"
+        />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="True" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field name="domain_force">[
+            '|',
+            ('bks_operation_department_id', 'child_of', user.employee_id.department_id.ids),
+            ('bks_operation_department_id.manager_id.user_id', '=', user.id)
+        ]</field>
+    </record>
+    <record id="purchase_request_line_coordonnateur_department_rule" model="ir.rule">
+        <field name="name">Co-ordonnateur : lignes DA de son département</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request_line" />
+        <field
+            name="groups"
+            eval="[(4, ref('purchase_request_tier_validation.group_coordonnateur'))]"
+        />
+        <field name="perm_read" eval="True" />
+        <field name="perm_write" eval="True" />
+        <field name="perm_create" eval="False" />
+        <field name="perm_unlink" eval="False" />
+        <field name="domain_force">[
+            '|',
+            ('request_id.bks_operation_department_id', 'child_of', user.employee_id.department_id.ids),
+            ('request_id.bks_operation_department_id.manager_id.user_id', '=', user.id)
+        ]</field>
+    </record>
+    <record id="purchase_request_achats_all_rule" model="ir.rule">
+        <field name="name">Achats : toutes les DA</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field
+            name="groups"
+            eval="[
+                (4, ref('purchase_request.group_purchase_request_manager')),
+                (4, ref('purchase_request_tier_validation.group_responsable_achats')),
+            ]"
+        />
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+    <record id="purchase_request_line_achats_all_rule" model="ir.rule">
+        <field name="name">Achats : toutes les lignes DA</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request_line" />
+        <field
+            name="groups"
+            eval="[
+                (4, ref('purchase_request.group_purchase_request_manager')),
+                (4, ref('purchase_request_tier_validation.group_responsable_achats')),
+            ]"
+        />
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>

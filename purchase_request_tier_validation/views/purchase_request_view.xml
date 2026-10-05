@@ -12,23 +12,103 @@
                     name="invisible"
                 >state != 'draft' or validation_status in ('pending', 'rejected')</attribute>
                 <attribute name="string">Confirm</attribute>
+                <attribute
+                    name="groups"
+                >purchase_request_tier_validation.group_ordonnateur,purchase_request_tier_validation.group_responsable_achats</attribute>
             </button>
             <field name="state" position="after">
                 <field name="validation_status" invisible="1" />
+                <field name="bks_can_create_rfq" invisible="1" />
             </field>
+            <button
+                name="%(purchase_request.action_purchase_request_line_make_purchase_order)d"
+                position="attributes"
+            >
+                <attribute name="groups" />
+                <attribute
+                    name="invisible"
+                >state not in ('approved', 'in_progress') or not bks_can_create_rfq</attribute>
+            </button>
             <button name="button_to_approve" position="attributes">
                 <attribute name="invisible">1</attribute>
+            </button>
+            <button name="button_draft" position="attributes">
+                <attribute
+                    name="groups"
+                >purchase_request_tier_validation.group_bks_da_reset</attribute>
+            </button>
+            <button name="button_in_progress" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </button>
+            <button name="button_rejected" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </button>
+            <button name="button_done" position="attributes">
+                <attribute name="string">Terminé</attribute>
+                <attribute
+                    name="groups"
+                >purchase_request_tier_validation.group_responsable_achats</attribute>
+                <attribute
+                    name="confirm"
+                >Une fois la demande d'achat terminée, il ne sera plus possible de créer une demande de prix (DDP) ni un bon de commande (BDC) à partir de cette DA. Voulez-vous continuer ?</attribute>
             </button>
             <field name="state" position="attributes">
                 <attribute
                     name="statusbar_visible"
                 >draft,approved,done,rejected</attribute>
             </field>
+            <xpath expr="//h1/field[@name='name']" position="attributes">
+                <attribute name="readonly">1</attribute>
+                <attribute name="required">0</attribute>
+                <attribute name="force_save">0</attribute>
+                <attribute name="placeholder"></attribute>
+            </xpath>
             <field name="requested_by" position="attributes">
                 <attribute name="string">Demandeur (Ordonnateur)</attribute>
             </field>
             <field name="assigned_to" position="attributes">
                 <attribute name="string">Approbateur (supérieur hiérarchique)</attribute>
+                <attribute name="readonly">1</attribute>
+                <attribute name="force_save">1</attribute>
+            </field>
+            <field name="line_ids" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
+            </field>
+            <button name="action_show_details" position="attributes">
+                <attribute name="invisible">not is_editable</attribute>
+            </button>
+            <field name="product_id" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
+            </field>
+            <xpath expr="//field[@name='line_ids']//field[@name='name']" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
+            </xpath>
+            <field name="product_qty" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
+            </field>
+            <field name="date_required" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
+            </field>
+            <field name="estimated_cost" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_purchase_request_line_details_inherit_tier" model="ir.ui.view">
+        <field name="name">purchase.request.line.details.tier</field>
+        <field name="model">purchase.request.line</field>
+        <field
+            name="inherit_id"
+            ref="purchase_request.view_purchase_request_line_details"
+        />
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="edit">is_editable</attribute>
+                <attribute name="create">false</attribute>
+            </form>
+            <field name="cancelled" position="attributes">
+                <attribute name="readonly">is_editable == False</attribute>
             </field>
         </field>
     </record>

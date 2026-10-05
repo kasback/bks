@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <template
+        id="tier_validation_reviews"
+        inherit_id="base_tier_validation.tier_validation_reviews"
+    >
+        <field name="review_ids" position="replace">
+            <field
+                name="tier_review_all_ids"
+                widget="tier_validation"
+                invisible="not tier_review_all_ids"
+                readonly="1"
+                class="w-100 mt-1"
+            >
+                <list create="false" delete="false" edit="false">
+                    <field name="name" />
+                    <field name="sequence" />
+                    <field name="requested_by" />
+                    <field name="status" />
+                    <field name="display_status" />
+                    <field name="todo_by" />
+                    <field name="done_by" />
+                    <field name="reviewed_date" />
+                    <field name="reviewed_formated_date" />
+                    <field name="comment" />
+                </list>
+            </field>
+        </field>
+    </template>
+</odoo>

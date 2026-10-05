@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="purchase_order_form_bks_hide_upload_bill" model="ir.ui.view">
+        <field name="name">purchase.order.form.bks.hide.upload.bill</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form" />
+        <field name="arch" type="xml">
+            <widget name="purchase_file_uploader" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </widget>
+        </field>
+    </record>
+    <record id="purchase_order_form_bks_vendor_bill" model="ir.ui.view">
+        <field name="name">purchase.order.form.bks.vendor.bill</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form" />
+        <field name="arch" type="xml">
+            <field name="state" position="after">
+                <field name="bks_can_create_vendor_bill" invisible="1" />
+            </field>
+        </field>
+    </record>
+    <record id="purchase_order_form_bks_vendor_bill_down_payment" model="ir.ui.view">
+        <field name="name">purchase.order.form.bks.vendor.bill.down.payment</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase_down_payment.purchase_order_form" />
+        <field name="arch" type="xml">
+            <xpath
+                expr="//button[@name='%(purchase_down_payment.purchase_order_advance_payment_action)d']"
+                position="attributes"
+            >
+                <attribute
+                    name="invisible"
+                >state != 'purchase' or not bks_can_create_vendor_bill</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>
