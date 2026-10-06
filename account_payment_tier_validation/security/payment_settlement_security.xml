@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record model="ir.module.category" id="module_category_bks_payment_settlement">
+        <field name="name">Règlement</field>
+        <field name="parent_id" ref="base.module_category_accounting_accounting" />
+        <field name="sequence">25</field>
+    </record>
+
+    <record model="res.groups.privilege" id="res_groups_privilege_bks_payment_settlement">
+        <field name="name">Règlement</field>
+        <field name="category_id" ref="module_category_bks_payment_settlement" />
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="group_bks_charge_reglement" model="res.groups">
+        <field name="name">Chargé de règlement</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_bks_payment_settlement" />
+        <field
+            name="implied_ids"
+            eval="[(4, ref('account.group_account_invoice'))]"
+        />
+        <field
+            name="comment"
+        >Enregistre les paiements (wizard, brouillon / en cours). Ne valide pas le circuit de règlement.</field>
+    </record>
+
+    <record id="group_bks_responsable_reglement" model="res.groups">
+        <field name="name">Responsable de règlement</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="res_groups_privilege_bks_payment_settlement" />
+        <field
+            name="implied_ids"
+            eval="[(4, ref('group_bks_charge_reglement'))]"
+        />
+        <field
+            name="comment"
+        >Unique niveau d'approbation tier sur les paiements avant passage à « Payé ».</field>
+    </record>
+</odoo>

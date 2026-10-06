@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_bks_genex_export_wizard_form" model="ir.ui.view">
+        <field name="name">bks.genex.export.wizard.form</field>
+        <field name="model">bks.genex.export.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Export GENEX">
+                <group invisible="file_data">
+                    <group>
+                        <field name="date_from" />
+                        <field name="date_to" />
+                        <field
+                            name="journal_ids"
+                            widget="many2many_tags"
+                            options="{'no_create': True}"
+                        />
+                    </group>
+                    <group>
+                        <field name="move_to_export_count" readonly="1" />
+                        <button
+                            name="action_reload_moves"
+                            string="Actualiser la liste"
+                            type="object"
+                            class="btn-secondary"
+                        />
+                    </group>
+                </group>
+                <separator string="Écritures à exporter" invisible="file_data" />
+                <field
+                    name="move_ids"
+                    nolabel="1"
+                    invisible="file_data"
+                    options="{'no_create': True, 'no_open': True, 'link': False}"
+                >
+                    <list create="false" delete="true" edit="false">
+                        <field name="date" />
+                        <field name="name" />
+                        <field name="journal_id" />
+                        <field name="ref" optional="show" />
+                        <field name="partner_id" optional="show" />
+                        <field name="amount_total" sum="Total" />
+                        <field name="company_id" optional="hide" groups="base.group_multi_company" />
+                    </list>
+                </field>
+                <group invisible="not file_data">
+                    <field name="file_name" readonly="1" />
+                    <field name="file_data" filename="file_name" readonly="1" />
+                </group>
+                <footer>
+                    <button
+                        name="action_export_genex"
+                        string="Exporter"
+                        type="object"
+                        class="btn-primary"
+                        invisible="file_data"
+                    />
+                    <button string="Fermer" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_bks_genex_export_wizard" model="ir.actions.act_window">
+        <field name="name">Export GENEX</field>
+        <field name="res_model">bks.genex.export.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

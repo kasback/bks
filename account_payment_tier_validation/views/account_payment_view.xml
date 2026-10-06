@@ -10,26 +10,26 @@
                 <filter
                     name="needs_review"
                     string="Needs my Review"
-                    domain="[('reviewer_ids', 'in', uid), ('state', '=', 'draft')]"
+                    domain="[('reviewer_ids', 'in', uid), ('state', 'in', ('draft', 'in_process'))]"
                     help="My Payments to review"
                 />
                 <filter
                     name="no_validation_requested"
                     string="No Validation Requested"
-                    domain="[('review_ids', '=', False), ('state', '=', 'draft')]"
+                    domain="[('review_ids', '=', False), ('state', 'in', ('draft', 'in_process'))]"
                     help="Payments where no validation has been requested"
                 />
                 <filter
                     name="validation_in_progress"
                     string="Validation In Progress"
-                    domain="[('reviewer_ids', '!=', False), ('state', '=', 'draft')]"
+                    domain="[('reviewer_ids', '!=', False), ('state', 'in', ('draft', 'in_process'))]"
                     help="Payments pending to validate"
                 />
                 <filter
                     name="tier_validated"
                     string="Validated"
                     domain="[('validation_status', '=', 'validated')]"
-                    help="Payments validated and ready to be confirmed"
+                    help="Payments approved and ready for the Validate button"
                 />
             </filter>
         </field>
@@ -58,13 +58,28 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_form" />
         <field name="arch" type="xml">
-            <xpath expr="//button[@name='action_post']" position="attributes">
-                <attribute name="invisible">state != 'draft'</attribute>
+            <xpath expr="//button[@name='action_post']" position="before">
+                <field name="bks_tier_governed" invisible="1" />
+                <field name="bks_show_confirm_button" invisible="1" />
+                <field name="bks_show_validate_button" invisible="1" />
+                <field name="bks_show_reset_to_draft_button" invisible="1" />
+                <field name="bks_show_cancel_button" invisible="1" />
             </xpath>
-            <xpath expr="//button[@name='action_validate']" position="attributes">
+            <xpath expr="//button[@name='action_post']" position="attributes">
                 <attribute
                     name="invisible"
-                >state != 'in_process' or validation_status in ('pending', 'waiting', 'rejected')</attribute>
+                >state != 'draft' or not bks_show_confirm_button</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_validate']" position="attributes">
+                <attribute name="invisible">not bks_show_validate_button</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_draft']" position="attributes">
+                <attribute
+                    name="invisible"
+                >state in ('draft', 'canceled') or not bks_show_reset_to_draft_button</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_cancel']" position="attributes">
+                <attribute name="invisible">not bks_show_cancel_button</attribute>
             </xpath>
             <field name="state" position="after">
                 <field name="validation_status" invisible="1" />

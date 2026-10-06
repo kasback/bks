@@ -1,0 +1,25 @@
+{
+    "name": "Export GENEX (iMal)",
+    "version": "19.0.1.0.8",
+    "category": "Accounting/Accounting",
+    "summary": "Assistant d'export GENEX depuis les écritures comptables Odoo",
+    "depends": [
+        "account",
+        "account_move_tier_validation",
+        "account_payment_tier_validation",
+    ],
+    "data": [
+        "security/ir.model.access.csv",
+        "views/res_config_settings_views.xml",
+        "views/res_partner_views.xml",
+        "views/account_account_views.xml",
+        "views/account_analytic_account_views.xml",
+        "wizard/genex_export_wizard_views.xml",
+        "views/account_move_views.xml",
+        "views/account_payment_views.xml",
+    ],
+    "external_dependencies": {"python": ["openpyxl"]},
+    "license": "LGPL-3",
+    "installable": True,
+    "application": False,
+}

@@ -52,11 +52,13 @@ class TestAccountPayment(BaseCommon):
                 "payment_type": "inbound",
                 "partner_type": "customer",
                 "partner_id": self.customer.id,
+                "write_off_line_vals": [],
             }
         )
 
         payment.action_post()
         self.assertEqual(payment.state, "in_process")
+        self.assertEqual(payment.move_id.state, "draft")
         with self.assertRaises(ValidationError):
             payment.action_validate()
 
@@ -69,8 +71,7 @@ class TestAccountPayment(BaseCommon):
             }
         )
         payment_ok.action_post()
-        payment_ok.action_validate()
-        self.assertEqual(payment_ok.state, "paid")
+        self.assertEqual(payment_ok.state, "in_process")
 
     def test_03_validation_account_payment(self):
         payment = self.env["account.payment"].create(
@@ -91,8 +92,7 @@ class TestAccountPayment(BaseCommon):
         record.invalidate_model()
         record.validate_tier()
         payment.invalidate_model()
-        payment.action_post()
-        self.assertEqual(payment.state, "in_process")
         payment.action_validate()
         self.assertEqual(payment.state, "paid")
+        self.assertEqual(payment.move_id.state, "posted")
         self.assertEqual(payment.validation_status, "validated")
