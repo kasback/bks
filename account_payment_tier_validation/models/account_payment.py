@@ -15,6 +15,12 @@ class AccountPayment(models.Model):
 
     _tier_validation_manual_config = False
 
+    def _check_tier_state_transition(self, vals):
+        """Autoriser la confirmation (en cours) pendant le circuit de validation."""
+        if vals.get(self._state_field) == "in_process":
+            return False
+        return super()._check_tier_state_transition(vals)
+
     def _bks_tier_definition_applies(self):
         self.ensure_one()
         tiers = (
