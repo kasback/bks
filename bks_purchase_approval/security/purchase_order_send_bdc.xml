@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="group_bks_send_bdc" model="res.groups">
+        <field name="name">Envoyer un bon de commande</field>
+        <field name="sequence">8</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Autorise le bouton « Envoyer un bon de commande » (email au fournisseur) sur les BDC confirmés. À attribuer explicitement.</field>
+    </record>
+    <record id="group_bks_send_ddp" model="res.groups">
+        <field name="name">Envoyer une demande de prix</field>
+        <field name="sequence">9</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Autorise les boutons « Envoyer une demande de prix » (email) sur les DDP / RFQ. À attribuer explicitement.</field>
+    </record>
+</odoo>

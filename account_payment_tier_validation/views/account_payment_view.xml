@@ -59,7 +59,12 @@
         <field name="inherit_id" ref="account.view_account_payment_form" />
         <field name="arch" type="xml">
             <xpath expr="//button[@name='action_post']" position="attributes">
-                <attribute name="invisible">state != 'draft' or validation_status in ('pending', 'waiting', 'rejected')</attribute>
+                <attribute name="invisible">state != 'draft'</attribute>
+            </xpath>
+            <xpath expr="//button[@name='action_validate']" position="attributes">
+                <attribute
+                    name="invisible"
+                >state != 'in_process' or validation_status in ('pending', 'waiting', 'rejected')</attribute>
             </xpath>
             <field name="state" position="after">
                 <field name="validation_status" invisible="1" />

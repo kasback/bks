@@ -28,6 +28,9 @@ class TestAccountPayment(BaseCommon):
         )
 
         cls.tier_def_obj = cls.env["tier.definition"]
+        cls.tier_def_obj.search([("model", "=", cls.payment_model.model)]).write(
+            {"active": False}
+        )
         cls.tier_def_obj.create(
             {
                 "model_id": cls.payment_model.id,
@@ -52,11 +55,22 @@ class TestAccountPayment(BaseCommon):
             }
         )
 
-        with self.assertRaises(ValidationError):
-            payment.action_post()
-        payment.amount = 100
         payment.action_post()
         self.assertEqual(payment.state, "in_process")
+        with self.assertRaises(ValidationError):
+            payment.action_validate()
+
+        payment_ok = self.env["account.payment"].create(
+            {
+                "amount": 100.0,
+                "payment_type": "inbound",
+                "partner_type": "customer",
+                "partner_id": self.customer.id,
+            }
+        )
+        payment_ok.action_post()
+        payment_ok.action_validate()
+        self.assertEqual(payment_ok.state, "paid")
 
     def test_03_validation_account_payment(self):
         payment = self.env["account.payment"].create(
@@ -76,6 +90,9 @@ class TestAccountPayment(BaseCommon):
         record = payment.with_user(self.test_user_1.id)
         record.invalidate_model()
         record.validate_tier()
+        payment.invalidate_model()
         payment.action_post()
         self.assertEqual(payment.state, "in_process")
+        payment.action_validate()
+        self.assertEqual(payment.state, "paid")
         self.assertEqual(payment.validation_status, "validated")
