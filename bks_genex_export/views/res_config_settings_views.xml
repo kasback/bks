@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="res_config_settings_view_form_genex" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.genex</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='default_accounts']" position="after">
+                <block title="Export GENEX (iMal)" id="bks_genex_settings">
+                <setting
+                    string="Codes GENEX"
+                    help="Codes par défaut pour l'export des écritures vers iMal."
+                >
+                    <div class="content-group">
+                        <div class="row mt16">
+                            <label for="genex_company_code" class="col-lg-4" />
+                            <field name="genex_company_code" class="col-lg-2" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_default_agency_code" class="col-lg-4" />
+                            <field name="genex_default_agency_code" class="col-lg-2" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_currency_code" class="col-lg-4" />
+                            <field name="genex_currency_code" class="col-lg-2" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_ec_type" class="col-lg-4" />
+                            <field name="genex_ec_type" class="col-lg-2" />
+                        </div>
+                    </div>
+                </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>

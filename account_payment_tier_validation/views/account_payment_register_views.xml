@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_account_payment_register_form_bks" model="ir.ui.view">
+        <field name="name">account.payment.register.form.bks.tier</field>
+        <field name="model">account.payment.register</field>
+        <field name="inherit_id" ref="account.view_account_payment_register_form" />
+        <field name="arch" type="xml">
+            <field name="partner_bank_id" position="attributes">
+                <attribute
+                    name="required"
+                >require_partner_bank_account or (payment_type == 'outbound' and journal_id.type == 'bank')</attribute>
+                <attribute
+                    name="options"
+                >{'no_create': True, 'no_create_edit': True, 'no_open': True}</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>
