@@ -8,13 +8,13 @@ class AccountPaymentRegister(models.TransientModel):
     _inherit = "account.payment.register"
 
     def _post_payments(self, to_process, edit_mode=False):
-        """Keep payments that need a tier review in draft instead of posting."""
+        """Lance la validation tiers puis confirme (facture « en cours de paiement »)."""
         payments = self.env["account.payment"]
         for vals in to_process:
             payments |= vals["payment"]
-        to_review = payments.filtered("need_validation")
-        to_post = payments - to_review
+        to_review = payments.filtered("need_validation").filtered(
+            lambda pay: not pay.review_ids
+        )
         if to_review:
             to_review.request_validation()
-        if to_post:
-            to_post.with_context(skip_sale_auto_invoice_send=True).action_post()
+        return super()._post_payments(to_process, edit_mode=edit_mode)

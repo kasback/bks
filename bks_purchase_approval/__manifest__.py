@@ -2,7 +2,7 @@
     "name": "BKS Circuit validation DA / BDC",
     "summary": "Circuit de validation des demandes d'achat et bons de commande "
     "selon les seuils 40 KDH / 700 KDH.",
-    "version": "19.0.1.2.9",
+    "version": "19.0.1.2.15",
     "category": "Purchases",
     "author": "BKS",
     "license": "AGPL-3",
@@ -19,6 +19,7 @@
     "auto_install": True,
     "data": [
         "security/account_move_finance_buttons.xml",
+        "security/purchase_order_send_bdc.xml",
         "security/ir.model.access.csv",
         "security/purchase_order_department_rules.xml",
         "security/purchase_request_department_rules.xml",
@@ -28,6 +29,7 @@
         "views/purchase_request_view.xml",
         "views/purchase_request_line_make_purchase_order_views.xml",
         "views/tier_validation_templates.xml",
+        "data/tier_validation_exception_data.xml",
     ],
     "assets": {
         "web.assets_backend": [

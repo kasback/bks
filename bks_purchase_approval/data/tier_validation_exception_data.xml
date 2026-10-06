@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <record id="tier_validation_exception_pr_operation_unit" model="tier.validation.exception">
+        <field name="name">Unité opérationnelle (DA)</field>
+        <field name="model_id" ref="purchase_request.model_purchase_request" />
+        <field
+            name="field_ids"
+            eval="[(4, ref('bks_purchase_approval.field_purchase_request__bks_operation_department_id'))]"
+        />
+        <field name="allowed_to_write_under_validation" eval="True" />
+        <field name="allowed_to_write_after_validation" eval="True" />
+    </record>
+    <record id="tier_validation_exception_po_operation_unit" model="tier.validation.exception">
+        <field name="name">Unité opérationnelle (DA)</field>
+        <field name="model_id" ref="purchase.model_purchase_order" />
+        <field
+            name="field_ids"
+            eval="[(4, ref('bks_purchase_approval.field_purchase_order__bks_operation_department_id'))]"
+        />
+        <field name="allowed_to_write_under_validation" eval="True" />
+        <field name="allowed_to_write_after_validation" eval="True" />
+    </record>
+    <record id="tier_validation_exception_move_operation_unit" model="tier.validation.exception">
+        <field name="name">Unité opérationnelle (DA)</field>
+        <field name="model_id" ref="account.model_account_move" />
+        <field
+            name="field_ids"
+            eval="[(4, ref('bks_purchase_approval.field_account_move__bks_operation_department_id'))]"
+        />
+        <field name="allowed_to_write_under_validation" eval="True" />
+        <field name="allowed_to_write_after_validation" eval="True" />
+    </record>
+</odoo>

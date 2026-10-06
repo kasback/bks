@@ -18,6 +18,7 @@ class AccountMove(models.Model):
         string="Unité opérationnelle (DA)",
         compute="_compute_bks_operation_department_id",
         store=True,
+        readonly=True,
         help="Département issu des bons de commande liés à cette facture.",
     )
     bks_vendor_locked_from_po = fields.Boolean(
@@ -94,16 +95,7 @@ class AccountMove(models.Model):
                     department = order.bks_operation_department_id
                     break
             move.bks_operation_department_id = department
-
-    def _get_under_validation_exceptions(self):
-        return super()._get_under_validation_exceptions() + [
-            "bks_operation_department_id",
-        ]
-
-    def _get_after_validation_exceptions(self):
-        return super()._get_after_validation_exceptions() + [
-            "bks_operation_department_id",
-        ]
+        self._bks_refresh_coordonnateur_reviewers()
 
     def write(self, vals):
         if "partner_id" in vals:

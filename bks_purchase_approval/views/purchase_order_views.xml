@@ -1,5 +1,43 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record id="purchase_order_form_bks_send_email_access" model="ir.ui.view">
+        <field name="name">purchase.order.form.bks.send.email.access</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form" />
+        <field name="arch" type="xml">
+            <field name="state" position="after">
+                <field name="bks_can_send_ddp" invisible="1" />
+                <field name="bks_can_send_bdc_email" invisible="1" />
+            </field>
+            <xpath
+                expr="//header/button[@name='action_rfq_send'][@invisible=&quot;state != 'draft'&quot;]"
+                position="attributes"
+            >
+                <attribute name="groups" />
+                <attribute
+                    name="invisible"
+                >state != 'draft' or not bks_can_send_ddp</attribute>
+            </xpath>
+            <xpath
+                expr="//header/button[@name='action_rfq_send'][@invisible=&quot;state != 'sent'&quot;]"
+                position="attributes"
+            >
+                <attribute name="groups" />
+                <attribute
+                    name="invisible"
+                >state != 'sent' or not bks_can_send_ddp</attribute>
+            </xpath>
+            <xpath
+                expr="//header/button[@name='action_rfq_send'][@invisible=&quot;state != 'purchase'&quot;]"
+                position="attributes"
+            >
+                <attribute name="groups" />
+                <attribute
+                    name="invisible"
+                >state != 'purchase' or not bks_can_send_bdc_email</attribute>
+            </xpath>
+        </field>
+    </record>
     <record id="purchase_order_form_bks_hide_upload_bill" model="ir.ui.view">
         <field name="name">purchase.order.form.bks.hide.upload.bill</field>
         <field name="model">purchase.order</field>

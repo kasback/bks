@@ -9,6 +9,8 @@ _BKS_VENDOR_BILL_CREATOR_GROUPS = (
     "account.group_account_manager",
     "purchase_request_tier_validation.group_responsable_achats",
 )
+_BKS_SEND_BDC_GROUP = "bks_purchase_approval.group_bks_send_bdc"
+_BKS_SEND_DDP_GROUP = "bks_purchase_approval.group_bks_send_ddp"
 
 
 class PurchaseOrder(models.Model):
@@ -17,11 +19,18 @@ class PurchaseOrder(models.Model):
     bks_can_create_vendor_bill = fields.Boolean(
         compute="_compute_bks_can_create_vendor_bill",
     )
+    bks_can_send_ddp = fields.Boolean(
+        compute="_compute_bks_po_email_access",
+    )
+    bks_can_send_bdc_email = fields.Boolean(
+        compute="_compute_bks_po_email_access",
+    )
     bks_operation_department_id = fields.Many2one(
         comodel_name="hr.department",
         string="Unité opérationnelle (DA)",
         compute="_compute_bks_operation_department_id",
         store=True,
+        readonly=True,
         help="Département du demandeur (ordonnateur) sur les DA liées à ce BDC.",
     )
 
@@ -45,6 +54,42 @@ class PurchaseOrder(models.Model):
         can = self._bks_user_can_create_vendor_bill()
         for order in self:
             order.bks_can_create_vendor_bill = can
+
+    @api.depends_context("uid")
+    def _compute_bks_po_email_access(self):
+        user = self.env.user
+        can_ddp = user.has_group(_BKS_SEND_DDP_GROUP)
+        can_bdc = user.has_group(_BKS_SEND_BDC_GROUP)
+        for order in self:
+            order.bks_can_send_ddp = can_ddp
+            order.bks_can_send_bdc_email = can_bdc
+
+    @api.model
+    def _bks_check_can_send_ddp_email(self):
+        if not self.env.user.has_group(_BKS_SEND_DDP_GROUP):
+            raise UserError(
+                _(
+                    "L'envoi de la demande de prix par email est réservé aux "
+                    "utilisateurs du groupe « Envoyer une demande de prix »."
+                )
+            )
+
+    @api.model
+    def _bks_check_can_send_bdc_email(self):
+        if not self.env.user.has_group(_BKS_SEND_BDC_GROUP):
+            raise UserError(
+                _(
+                    "L'envoi du bon de commande par email est réservé aux "
+                    "utilisateurs du groupe « Envoyer un bon de commande »."
+                )
+            )
+
+    def action_rfq_send(self):
+        if self.env.context.get("send_rfq", False):
+            self._bks_check_can_send_ddp_email()
+        else:
+            self._bks_check_can_send_bdc_email()
+        return super().action_rfq_send()
 
     def action_create_invoice(self, attachment_ids=False):
         self._bks_check_can_create_vendor_bill()
@@ -84,9 +129,3 @@ class PurchaseOrder(models.Model):
                     break
             order.bks_operation_department_id = department
         self._bks_refresh_coordonnateur_reviewers()
-
-    @api.model
-    def _get_under_validation_exceptions(self):
-        exceptions = super()._get_under_validation_exceptions()
-        exceptions.append("bks_operation_department_id")
-        return exceptions

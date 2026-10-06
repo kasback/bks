@@ -12,6 +12,7 @@ class PurchaseRequest(models.Model):
         string="Unité opérationnelle",
         compute="_compute_bks_operation_department_id",
         store=True,
+        readonly=True,
         help="Département du demandeur (ordonnateur) sur la demande d'achat.",
     )
 
@@ -50,9 +51,3 @@ class PurchaseRequest(models.Model):
                     )
                 )
         return super().request_validation()
-
-    @api.model
-    def _get_under_validation_exceptions(self):
-        exceptions = super()._get_under_validation_exceptions()
-        exceptions.append("bks_operation_department_id")
-        return exceptions
