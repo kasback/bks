@@ -6,9 +6,21 @@ class AccountPayment(models.Model):
     _inherit = "account.payment"
 
     genex_exported = fields.Boolean(
-        related="move_id.genex_exported",
         string="Exporté GENEX",
-        store=True,
+        copy=False,
+        readonly=True,
+        index=True,
+        help="Paiement transmis à iMal via l'export GENEX (indépendant de l'écriture).",
+    )
+    genex_export_date = fields.Datetime(
+        string="Date export GENEX",
+        copy=False,
+        readonly=True,
+    )
+    genex_export_user_id = fields.Many2one(
+        comodel_name="res.users",
+        string="Export GENEX par",
+        copy=False,
         readonly=True,
     )
     bks_show_genex_export_button = fields.Boolean(
@@ -19,7 +31,7 @@ class AccountPayment(models.Model):
         "state",
         "validation_status",
         "move_id",
-        "move_id.genex_exported",
+        "genex_exported",
         "bks_tier_governed",
     )
     def _compute_bks_genex_payment_buttons(self):
@@ -29,13 +41,12 @@ class AccountPayment(models.Model):
                 and pay.validation_status == "validated"
                 and pay.state == "in_process"
                 and pay.move_id
-                and not pay.move_id.genex_exported
+                and not pay.genex_exported
             )
 
     @api.depends(
         "state",
-        "move_id",
-        "move_id.genex_exported",
+        "genex_exported",
         "validation_status",
         "amount",
         "payment_type",
@@ -46,15 +57,32 @@ class AccountPayment(models.Model):
     def _compute_bks_payment_buttons(self):
         super()._compute_bks_payment_buttons()
         for pay in self.filtered("bks_tier_governed"):
-            genex_exported = bool(pay.move_id and pay.move_id.genex_exported)
             pay.bks_show_validate_button = (
                 pay.validation_status == "validated"
                 and pay.state == "in_process"
-                and genex_exported
+                and pay.genex_exported
             )
             pay.bks_show_reset_to_draft_button = (
-                pay.state not in ("draft", "canceled") and not genex_exported
+                pay.state not in ("draft", "canceled") and not pay.genex_exported
             )
+
+    @api.model
+    def _get_validation_exceptions(self, extra_domain=None, add_base_exceptions=True):
+        res = super()._get_validation_exceptions(extra_domain, add_base_exceptions)
+        return res + [
+            "genex_exported",
+            "genex_export_date",
+            "genex_export_user_id",
+        ]
+
+    def _mark_genex_exported(self):
+        self.write(
+            {
+                "genex_exported": True,
+                "genex_export_date": fields.Datetime.now(),
+                "genex_export_user_id": self.env.user.id,
+            }
+        )
 
     def _bks_check_genex_export_eligibility(self):
         errors = []
@@ -85,7 +113,7 @@ class AccountPayment(models.Model):
                         name=pay.display_name,
                     )
                 )
-            elif pay.move_id.genex_exported:
+            elif pay.genex_exported:
                 errors.append(
                     _(
                         "%(name)s : déjà exporté GENEX.",
@@ -117,9 +145,7 @@ class AccountPayment(models.Model):
 
     def action_validate(self):
         governed = self._bks_requires_tier_before_validate()
-        not_exported = governed.filtered(
-            lambda pay: not (pay.move_id and pay.move_id.genex_exported)
-        )
+        not_exported = governed.filtered(lambda pay: not pay.genex_exported)
         if not_exported:
             raise ValidationError(
                 _(
@@ -130,7 +156,7 @@ class AccountPayment(models.Model):
         return super().action_validate()
 
     def action_draft(self):
-        exported = self.filtered(lambda pay: pay.move_id and pay.move_id.genex_exported)
+        exported = self.filtered("genex_exported")
         if exported:
             raise UserError(
                 _(
@@ -139,3 +165,14 @@ class AccountPayment(models.Model):
                 )
             )
         return super().action_draft()
+
+    def restart_validation(self):
+        exported = self.filtered("genex_exported")
+        if exported:
+            raise UserError(
+                _(
+                    "Impossible de recommencer la validation d'un paiement "
+                    "déjà exporté GENEX."
+                )
+            )
+        return super().restart_validation()

@@ -6,7 +6,9 @@ from odoo.exceptions import AccessError
 from odoo import api, fields, models
 from odoo.tools.misc import frozendict
 
-_BKS_TIER_FORM_MODELS = frozenset({"purchase.request", "purchase.order"})
+_BKS_TIER_FORM_MODELS = frozenset(
+    {"purchase.request", "purchase.order", "account.payment", "account.move"}
+)
 _BKS_OPERATION_DEPARTMENT_MODELS = frozenset(
     {"purchase.request", "purchase.order", "account.move"}
 )

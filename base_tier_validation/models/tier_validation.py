@@ -302,11 +302,14 @@ class TierValidation(models.AbstractModel):
         )
         if extra_domain:
             domain &= Domain(extra_domain)
+        exceptions = self.env["tier.validation.exception"].sudo().search(domain)
+        if not exceptions:
+            return []
         return (
-            self.env["tier.validation.exception"]
+            self.env["ir.model.fields"]
             .sudo()
-            .search(domain)
-            .mapped("field_ids.name")
+            .browse(exceptions.field_ids.ids)
+            .mapped("name")
         )
 
     @api.model

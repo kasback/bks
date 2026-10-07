@@ -196,7 +196,7 @@ class AccountPayment(models.Model):
             if not pay.move_id:
                 pay.with_context(bks_payment_draft_only=True)._generate_journal_entry()
             elif pay.move_id.state != "draft":
-                if getattr(pay.move_id, "genex_exported", False):
+                if getattr(pay, "genex_exported", False):
                     continue
                 pay.move_id.button_draft()
 
@@ -300,6 +300,27 @@ class AccountPayment(models.Model):
                 )
             )
         return super().action_draft()
+
+    def _action_open_cancel_wizard(self):
+        self.ensure_one()
+        wizard = self.env["bks.payment.cancel.wizard"].create(
+            {"payment_ids": [(6, 0, self.ids)]}
+        )
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Annuler le paiement"),
+            "res_model": "bks.payment.cancel.wizard",
+            "view_mode": "form",
+            "res_id": wizard.id,
+            "target": "new",
+        }
+
+    def action_cancel(self):
+        governed = self.filtered(lambda pay: pay._bks_tier_definition_applies())
+        if governed and not self.env.context.get("bks_skip_cancel_warning"):
+            if len(governed) == 1:
+                return governed._action_open_cancel_wizard()
+        return super().action_cancel()
 
     def _get_to_validate_message_name(self):
         if self.payment_type == "outbound":

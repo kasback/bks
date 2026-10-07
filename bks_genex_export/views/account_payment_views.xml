@@ -5,15 +5,22 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_form" />
         <field name="arch" type="xml">
-            <xpath expr="//button[@name='action_validate']" position="before">
-                <field name="bks_show_genex_export_button" invisible="1" />
-                <field name="genex_exported" invisible="1" />
-                <button
-                    name="action_open_genex_export_wizard"
-                    string="Exporter GENEX"
-                    type="object"
-                    class="btn-secondary"
-                    invisible="not bks_show_genex_export_button"
+            <xpath expr="//group[@name='group2']" position="inside">
+                <field
+                    name="genex_exported"
+                    string="Est exporté GENEX"
+                    readonly="1"
+                    widget="boolean"
+                />
+                <field
+                    name="genex_export_date"
+                    readonly="1"
+                    invisible="not genex_exported"
+                />
+                <field
+                    name="genex_export_user_id"
+                    readonly="1"
+                    invisible="not genex_exported"
                 />
             </xpath>
         </field>
@@ -23,7 +30,7 @@
         <field name="name">Export GENEX</field>
         <field name="model_id" ref="account.model_account_payment" />
         <field name="binding_model_id" ref="account.model_account_payment" />
-        <field name="binding_view_types">list,form</field>
+        <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">action = records.action_open_genex_export_wizard()</field>
     </record>

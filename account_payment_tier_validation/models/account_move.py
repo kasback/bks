@@ -11,7 +11,7 @@ class AccountMove(models.Model):
     def _bks_blocking_matched_payments(self):
         self.ensure_one()
         return self.matched_payment_ids.filtered(
-            lambda pay: pay.state in ("in_process", "paid")
+            lambda pay: pay.state in ("draft", "in_process", "paid")
         )
 
     def _bks_raise_if_payments_block(self, action_label):
@@ -20,11 +20,11 @@ class AccountMove(models.Model):
                 continue
             payments = move._bks_blocking_matched_payments()
             if payments:
-                names = ", ".join(payments.mapped("name")[:10])
+                names = ", ".join(payments[:10].mapped("display_name"))
                 raise UserError(
                     _(
                         "Impossible de %(action)s cette facture : un paiement "
-                        "est en cours ou validé (%(payments)s).",
+                        "est lié (brouillon, en cours ou validé) (%(payments)s).",
                         action=action_label,
                         payments=names,
                     )

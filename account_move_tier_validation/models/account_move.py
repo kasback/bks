@@ -2,6 +2,8 @@
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl)
 
 from odoo import api, models
+from odoo.api import NewId
+from odoo.exceptions import ValidationError
 
 
 class AccountMove(models.Model):
@@ -12,11 +14,26 @@ class AccountMove(models.Model):
 
     _tier_validation_manual_config = False
 
-    @api.depends("need_validation")
+    def _bks_tier_definitions_apply(self):
+        self.ensure_one()
+        tiers = self.env["tier.definition"].search(
+            [
+                ("model", "=", self._name),
+                ("company_id", "in", [False] + self._get_company().ids),
+            ]
+        )
+        return any(self.evaluate_tier(tier) for tier in tiers)
+
+    @api.depends("need_validation", "state", "company_id")
     def _compute_hide_post_button(self):
         result = super()._compute_hide_post_button()
-        for this in self:
-            this.hide_post_button |= this.need_validation
+        for move in self:
+            if move.state != "draft":
+                continue
+            if move.need_validation:
+                move.hide_post_button = True
+            elif isinstance(move.id, NewId) and move._bks_tier_definitions_apply():
+                move.hide_post_button = True
         return result
 
     def _get_under_validation_exceptions(self):
@@ -24,12 +41,6 @@ class AccountMove(models.Model):
 
     def _get_validation_exceptions(self, extra_domain=None, add_base_exceptions=True):
         res = super()._get_validation_exceptions(extra_domain, add_base_exceptions)
-        # we need to exclude amount_total,
-        # otherwise editing manually the values on lines dirties the field at onchange
-        # since it's not in readonly because readonly="not(review_ids)", it's then
-        # sent at save, and will override the values set by the user
-        # The other exclusions are needed to be able to generate the pdf
-        # and send the invoice by email
         am_exceptions = [
             "amount_total",
             "needed_terms_dirty",
@@ -54,6 +65,22 @@ class AccountMove(models.Model):
         return name
 
     def action_post(self):
-        return super(
-            AccountMove, self.with_context(skip_validation_check=True)
-        ).action_post()
+        for move in self:
+            if not move._bks_tier_definitions_apply():
+                continue
+            if isinstance(move.id, NewId):
+                raise ValidationError(
+                    self.env._(
+                        "Enregistrez la facture avant de la comptabiliser."
+                    )
+                )
+            if not move.review_ids:
+                move.request_validation()
+            if move.validation_status != "validated":
+                raise ValidationError(
+                    self.env._(
+                        "Cette pièce doit être approuvée dans le circuit de "
+                        "validation avant d'être comptabilisée."
+                    )
+                )
+        return super().action_post()
