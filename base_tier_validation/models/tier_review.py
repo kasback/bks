@@ -165,7 +165,13 @@ class TierReview(models.Model):
             reviewers = self.reviewer_id + self.reviewer_group_id.user_ids
         elif self.reviewer_field_id:
             resource = self.env[self.model].browse(self.res_id)
-            reviewer_field = getattr(resource, self.reviewer_field_id.name, False)
+            field_name = (
+                self.env["ir.model.fields"]
+                .sudo()
+                .browse(self.reviewer_field_id.id)
+                .name
+            )
+            reviewer_field = getattr(resource, field_name, False)
             if reviewer_field:
                 if reviewer_field._name == "res.groups":
                     reviewers = reviewer_field.user_ids

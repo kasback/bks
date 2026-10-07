@@ -15,6 +15,9 @@ except ImportError as err:
 else:
     _openpyxl_import_error = None
 
+# Export comptable (écriture) : brouillon ou comptabilisée, indépendant du paiement.
+_BKS_MOVE_GENEX_STATES = ("draft", "posted")
+
 GENEX_HEADERS = (
     "Code Entreprise",
     "Code Agence",
@@ -83,7 +86,8 @@ class BksGenexExportWizard(models.TransientModel):
                 res["date_to"] = max(dates)
         elif active_model == "account.move" and active_ids:
             moves = self.env["account.move"].browse(active_ids).filtered(
-                lambda m: m.state == "posted" and not m.genex_exported
+                lambda m: m.state in _BKS_MOVE_GENEX_STATES
+                and not m.genex_exported
             )
             res["move_ids"] = [(6, 0, moves.ids)]
             dates = moves.mapped("date")
@@ -116,7 +120,7 @@ class BksGenexExportWizard(models.TransientModel):
             ("date", ">=", date_from),
             ("date", "<=", date_to),
             ("company_id", "in", self.env.companies.ids),
-            ("state", "=", "posted"),
+            ("state", "in", _BKS_MOVE_GENEX_STATES),
             ("genex_exported", "=", False),
         ]
         if journal_id_list:
@@ -129,7 +133,7 @@ class BksGenexExportWizard(models.TransientModel):
             ("date", ">=", self.date_from),
             ("date", "<=", self.date_to),
             ("company_id", "in", self.env.companies.ids),
-            ("state", "=", "posted"),
+            ("state", "in", _BKS_MOVE_GENEX_STATES),
             ("genex_exported", "=", False),
         ]
         if self.journal_ids:
@@ -185,14 +189,27 @@ class BksGenexExportWizard(models.TransientModel):
     def _get_moves(self, raise_if_empty=True):
         self.ensure_one()
         moves = self.move_ids
-        already = moves.filtered("genex_exported")
-        if already:
-            raise UserError(
-                _(
-                    "Certaines écritures sont déjà exportées GENEX : %(names)s",
-                    names=", ".join(already.mapped("name")[:10]),
-                )
+        if self._is_payment_genex_export():
+            payments = self.env["account.payment"].search(
+                [("move_id", "in", moves.ids)]
             )
+            already = payments.filtered("genex_exported")
+            if already:
+                raise UserError(
+                    _(
+                        "Certains paiements sont déjà exportés GENEX : %(names)s",
+                        names=", ".join(already.mapped("name")[:10]),
+                    )
+                )
+        else:
+            already = moves.filtered("genex_exported")
+            if already:
+                raise UserError(
+                    _(
+                        "Certaines écritures sont déjà exportées GENEX : %(names)s",
+                        names=", ".join(already.mapped("name")[:10]),
+                    )
+                )
         if self._is_payment_genex_export():
             self._check_payment_moves_for_export(moves)
             invalid_state = moves.filtered(lambda m: m.state != "draft")
@@ -205,13 +222,15 @@ class BksGenexExportWizard(models.TransientModel):
                     )
                 )
         else:
-            not_posted = moves.filtered(lambda m: m.state != "posted")
-            if not_posted:
+            invalid_state = moves.filtered(
+                lambda m: m.state not in _BKS_MOVE_GENEX_STATES
+            )
+            if invalid_state:
                 raise UserError(
                     _(
-                        "Seules les écritures comptabilisées peuvent être "
-                        "exportées GENEX : %(names)s",
-                        names=", ".join(not_posted.mapped("name")[:10]),
+                        "Seules les écritures en brouillon ou comptabilisées "
+                        "peuvent être exportées GENEX : %(names)s",
+                        names=", ".join(invalid_state[:10].mapped("display_name")),
                     )
                 )
         moves = moves.filtered(lambda m: not m.genex_exported)
@@ -365,7 +384,13 @@ class BksGenexExportWizard(models.TransientModel):
 
         moves = self._get_moves()
         wb = self._build_workbook(moves)
-        moves._mark_genex_exported()
+        if self._is_payment_genex_export():
+            payments = self.env["account.payment"].search(
+                [("move_id", "in", moves.ids)]
+            )
+            payments._mark_genex_exported()
+        else:
+            moves._mark_genex_exported()
         buffer = io.BytesIO()
         wb.save(buffer)
         filename = "GENEX_%s_%s.xlsx" % (

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_bks_payment_cancel_wizard_form" model="ir.ui.view">
+        <field name="name">bks.payment.cancel.wizard.form</field>
+        <field name="model">bks.payment.cancel.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Annuler le paiement">
+                <div class="alert alert-warning" role="alert">
+                    <p>
+                        Cette action est
+                        <strong>irréversible</strong>
+                        : le paiement sera annulé et ne pourra pas être
+                        remis en brouillon.
+                    </p>
+                </div>
+                <field name="payment_ids" invisible="1" />
+                <footer>
+                    <button
+                        name="action_confirm_cancel"
+                        string="Annuler le paiement"
+                        type="object"
+                        class="btn-primary"
+                    />
+                    <button string="Fermer" special="cancel" />
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
