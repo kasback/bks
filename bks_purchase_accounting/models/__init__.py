@@ -4,3 +4,5 @@ from . import bks_purchase_fnp
 from . import stock_picking
 from . import account_move
 from . import purchase_order
+from . import res_partner
+from . import purchase_order_advance_payment

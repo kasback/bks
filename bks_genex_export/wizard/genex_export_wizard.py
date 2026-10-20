@@ -15,32 +15,46 @@ except ImportError as err:
 else:
     _openpyxl_import_error = None
 
-# Export comptable (écriture) : brouillon ou comptabilisée, indépendant du paiement.
-_BKS_MOVE_GENEX_STATES = ("draft", "posted")
+_BKS_MOVE_GENEX_STATES = ("posted",)
 
-GENEX_HEADERS = (
-    "Code Entreprise",
-    "Code Agence",
-    "Code Devise",
-    "Code GL",
-    "Num CIF",
-    "Serie",
-    "Vide",
-    "Vide",
-    "Vide",
-    "Montant MAD",
-    "Montant Devise Etrangère",
-    "Taux",
-    "Date Valeur",
-    "Description (libellé de l'EC)",
-    "Type Transaction",
-    "Type EC",
-    "Date Transaction",
-    "Vide",
-    "Compte (RIB)",
-    "Vide",
-    "Vide",
-    "Référence",
+GENEX_JVTICKET_HEADERS = (
+    "COMP_CODE",
+    "BRANCH_CODE",
+    "CURRENCY_CODE",
+    "GL_CODE",
+    "CIF_SUB_NO",
+    "SL_NO",
+    "DEAL",
+    "CLIENT",
+    "VENDOR",
+    "CV_AMOUNT",
+    "FC_AMOUNT",
+    "EXCH_RATE",
+    "VALUE_DATE",
+    "HEAD_DESC",
+    "TR_CODE",
+    "JV_TYPE",
+    "TRANS_DATE",
+    "DESCRIPTION",
+    "ACC_REFERENCE",
+    "processed",
+    "COST_CENTER",
+    "JV_REF",
+    "LINK_TO_RJV_TICKET",
+    "EMPTY",
+    "VAT_CODE",
+    "DIV_CODE",
+    "DEPT_CODE",
+    "Référence de lettrage",
+)
+
+IMAL_REGLEMENT_HEADERS = (
+    "Code banque",
+    "Montant",
+    "Beneficiaire",
+    "RIB",
+    "Mode de règlement",
+    "Référence règlement Odoo",
 )
 
 
@@ -59,8 +73,19 @@ class BksGenexExportWizard(models.TransientModel):
         string="Écritures à exporter",
         help="Retirez les lignes à exclure de l'export GENEX.",
     )
+    payment_ids = fields.Many2many(
+        comodel_name="account.payment",
+        relation="bks_genex_export_wizard_payment_rel",
+        column1="wizard_id",
+        column2="payment_id",
+        string="Paiements à exporter",
+    )
     move_to_export_count = fields.Integer(
         string="Nombre d'écritures",
+        compute="_compute_move_to_export_count",
+    )
+    payment_to_export_count = fields.Integer(
+        string="Nombre de paiements",
         compute="_compute_move_to_export_count",
     )
     file_data = fields.Binary(string="Fichier", readonly=True)
@@ -78,16 +103,15 @@ class BksGenexExportWizard(models.TransientModel):
         if active_model == "account.payment" and active_ids:
             payments = self.env["account.payment"].browse(active_ids)
             payments._bks_check_genex_export_eligibility()
-            moves = payments.mapped("move_id")
-            res["move_ids"] = [(6, 0, moves.ids)]
-            dates = moves.mapped("date")
+            res["payment_ids"] = [(6, 0, payments.ids)]
+            res["bks_payment_export"] = True
+            dates = payments.mapped("date")
             if dates:
                 res["date_from"] = min(dates)
                 res["date_to"] = max(dates)
         elif active_model == "account.move" and active_ids:
             moves = self.env["account.move"].browse(active_ids).filtered(
-                lambda m: m.state in _BKS_MOVE_GENEX_STATES
-                and not m.genex_exported
+                lambda m: m.state in _BKS_MOVE_GENEX_STATES and not m.genex_exported
             )
             res["move_ids"] = [(6, 0, moves.ids)]
             dates = moves.mapped("date")
@@ -98,7 +122,11 @@ class BksGenexExportWizard(models.TransientModel):
             today = fields.Date.context_today(self)
             res["date_from"] = today.replace(day=1)
             res["date_to"] = today
-        if "move_ids" in fields_list and not res.get("move_ids"):
+        if (
+            not res.get("bks_payment_export")
+            and "move_ids" in fields_list
+            and not res.get("move_ids")
+        ):
             res["move_ids"] = [
                 (6, 0, self._search_moves_for_criteria(res).ids)
             ]
@@ -144,34 +172,27 @@ class BksGenexExportWizard(models.TransientModel):
         self.ensure_one()
         return self.bks_payment_export
 
-    def _check_payment_moves_for_export(self, moves):
-        payments = self.env["account.payment"].search(
-            [("move_id", "in", moves.ids)]
-        )
-        payment_by_move = {pay.move_id.id: pay for pay in payments}
-        errors = []
-        for move in moves:
-            pay = payment_by_move.get(move.id)
-            if not pay:
-                errors.append(
-                    _(
-                        "%(move)s : export paiement GENEX réservé aux "
-                        "écritures de paiement.",
-                        move=move.display_name,
-                    )
-                )
-        if errors:
-            raise UserError("\n".join(errors))
-        payments._bks_check_genex_export_eligibility()
-
     def action_reload_moves(self):
         self.ensure_one()
         if self.date_from > self.date_to:
             raise UserError(_("La date de début doit être antérieure à la date de fin."))
+        if self._is_payment_genex_export():
+            raise UserError(
+                _("Actualisez la sélection depuis la liste des paiements.")
+            )
         moves = self.env["account.move"].search(
             self._domain_moves_for_criteria(), order="date, name, id"
         )
         self.move_ids = [(6, 0, moves.ids)]
+        return self._reopen_wizard()
+
+    @api.depends("move_ids", "payment_ids")
+    def _compute_move_to_export_count(self):
+        for wizard in self:
+            wizard.move_to_export_count = len(wizard.move_ids)
+            wizard.payment_to_export_count = len(wizard.payment_ids)
+
+    def _reopen_wizard(self):
         return {
             "type": "ir.actions.act_window",
             "res_model": self._name,
@@ -181,73 +202,95 @@ class BksGenexExportWizard(models.TransientModel):
             "name": _("Export GENEX"),
         }
 
-    @api.depends("move_ids")
-    def _compute_move_to_export_count(self):
-        for wizard in self:
-            wizard.move_to_export_count = len(wizard.move_ids)
-
     def _get_moves(self, raise_if_empty=True):
         self.ensure_one()
         moves = self.move_ids
-        if self._is_payment_genex_export():
-            payments = self.env["account.payment"].search(
-                [("move_id", "in", moves.ids)]
+        already = moves.filtered("genex_exported")
+        if already:
+            raise UserError(
+                _(
+                    "Certaines écritures sont déjà exportées GENEX : %(names)s",
+                    names=", ".join(already.mapped("name")[:10]),
+                )
             )
-            already = payments.filtered("genex_exported")
-            if already:
-                raise UserError(
-                    _(
-                        "Certains paiements sont déjà exportés GENEX : %(names)s",
-                        names=", ".join(already.mapped("name")[:10]),
-                    )
+        invalid_state = moves.filtered(lambda m: m.state not in _BKS_MOVE_GENEX_STATES)
+        if invalid_state:
+            raise UserError(
+                _(
+                    "Seules les écritures comptabilisées peuvent être "
+                    "exportées GENEX : %(names)s",
+                    names=", ".join(invalid_state[:10].mapped("display_name")),
                 )
-        else:
-            already = moves.filtered("genex_exported")
-            if already:
-                raise UserError(
-                    _(
-                        "Certaines écritures sont déjà exportées GENEX : %(names)s",
-                        names=", ".join(already.mapped("name")[:10]),
-                    )
-                )
-        if self._is_payment_genex_export():
-            self._check_payment_moves_for_export(moves)
-            invalid_state = moves.filtered(lambda m: m.state != "draft")
-            if invalid_state:
-                raise UserError(
-                    _(
-                        "Les écritures de paiement à exporter GENEX doivent "
-                        "être en brouillon : %(names)s",
-                        names=", ".join(invalid_state.mapped("name")[:10]),
-                    )
-                )
-        else:
-            invalid_state = moves.filtered(
-                lambda m: m.state not in _BKS_MOVE_GENEX_STATES
             )
-            if invalid_state:
-                raise UserError(
-                    _(
-                        "Seules les écritures en brouillon ou comptabilisées "
-                        "peuvent être exportées GENEX : %(names)s",
-                        names=", ".join(invalid_state[:10].mapped("display_name")),
-                    )
-                )
         moves = moves.filtered(lambda m: not m.genex_exported)
         if not moves and raise_if_empty:
             raise UserError(_("Aucune écriture à exporter."))
         return moves
 
+    def _get_payments(self, raise_if_empty=True):
+        self.ensure_one()
+        payments = self.payment_ids
+        payments._bks_check_genex_export_eligibility()
+        already = payments.filtered("genex_exported")
+        if already:
+            raise UserError(
+                _(
+                    "Certains paiements sont déjà exportés GENEX : %(names)s",
+                    names=", ".join(already.mapped("display_name")[:10]),
+                )
+            )
+        if not payments and raise_if_empty:
+            raise UserError(_("Aucun paiement à exporter."))
+        return payments
+
     @staticmethod
-    def _gl_code(account):
-        if account.genex_gl_code:
-            return account.genex_gl_code
-        digits = re.sub(r"\D", "", account.code or "")
-        if not digits:
-            return ""
-        return digits[:6].zfill(6)[-6:]
+    def _gl_code(account, company=None):
+        """GL_CODE = code Odoo standard du compte (numérique si possible)."""
+        if company:
+            account = account.with_company(company)
+        code = (account.code or "").strip()
+        if code.isdigit():
+            return int(code)
+        return code
+
+    def _account_has_genex_nomenclature(self, account, company):
+        account = account.with_company(company)
+        return bool(
+            account.genex_agency_code
+            and account.genex_currency_code
+            and (account.code or "").strip()
+        )
+
+    def _genex_account_columns(self, line, company):
+        """BRANCH_CODE, CURRENCY_CODE, GL_CODE, CIF_SUB_NO, SL_NO.
+
+        Priorité : nomenclature du compte (agence, devise, code, CIF, séquence).
+        Sinon repli analytique / société / partenaire (legacy).
+        """
+        account = line.account_id.with_company(company)
+        if self._account_has_genex_nomenclature(account, company):
+            return {
+                "BRANCH_CODE": account.genex_agency_code,
+                "CURRENCY_CODE": account.genex_currency_code,
+                "GL_CODE": self._gl_code(account, company),
+                "CIF_SUB_NO": account.genex_cif or 0,
+                "SL_NO": account.genex_sequence or 0,
+            }
+        partner = line.move_id.partner_id
+        cif = partner.genex_cif or 0 if partner else 0
+        currency_code = company.genex_currency_code or 504
+        return {
+            "BRANCH_CODE": self._agency_code(line, company),
+            "CURRENCY_CODE": currency_code,
+            "GL_CODE": self._gl_code(account, company),
+            "CIF_SUB_NO": cif,
+            "SL_NO": 1 if cif else 0,
+        }
 
     def _agency_code(self, line, company):
+        account = line.account_id
+        if account.genex_agency_code:
+            return account.genex_agency_code
         distribution = line.analytic_distribution or {}
         if distribution:
             account_ids = [int(aid) for aid in distribution if str(aid).isdigit()]
@@ -257,14 +300,47 @@ class BksGenexExportWizard(models.TransientModel):
                     return analytic.genex_agency_code
         return company.genex_default_agency_code or 1000
 
-    @staticmethod
-    def _short_reference(move):
+    def _payment_display_reference(self, payment):
+        return (
+            payment.name
+            or payment.payment_reference
+            or payment.memo
+            or payment.display_name
+        )
+
+    def _short_reference(self, move, payment=None):
+        fnp = move._bks_genex_fnp_record()
+        if fnp:
+            reception = move._bks_genex_reception_reference()
+            base = fnp.name or (move.ref or move.name or "")
+            if reception:
+                return "%s %s" % (base, reception)
+            return base
+        if payment:
+            pay_ref = self._payment_display_reference(payment)
+            if pay_ref:
+                return str(pay_ref).split()[0][:32]
         ref = (move.ref or move.payment_reference or move.name or "").strip()
         if not ref:
             return move.name or ""
         return ref.split()[0][:32]
 
+    def _jv_ref(self, move):
+        reception = move._bks_genex_reception_reference()
+        if reception:
+            return reception[:32]
+        ref = (move.ref or move.payment_reference or move.name or "").strip()
+        return ref.split()[0][:32] if ref else (move.name or "")[:32]
+
     def _long_label(self, move):
+        fnp = move._bks_genex_fnp_record()
+        if fnp and move._bks_genex_reception_reference():
+            if fnp.reversal_move_id and fnp.reversal_move_id == move:
+                return _("Extourne %s — réception %s") % (
+                    fnp.name,
+                    fnp.picking_id.name,
+                )[:255]
+            return _("FNP %s — réception %s") % (fnp.name, fnp.picking_id.name)[:255]
         ref = self._short_reference(move)
         partner = move.partner_id.name or ""
         invoice_no = move.name or move.ref or ""
@@ -279,27 +355,27 @@ class BksGenexExportWizard(models.TransientModel):
             desc = re.sub(r"<[^>]+>", " ", desc)
         desc = " ".join(str(desc).split())
         parts = [p for p in (ref, partner, f"FN°{invoice_no}", desc) if p]
-        label = " ".join(parts)
-        return label[:255]
+        return " ".join(parts)[:255]
 
     def _line_rows(self, move, company):
         rows = []
-        currency_code = company.genex_currency_code or 504
-        ec_type = company.genex_ec_type or 563
+        jv_type = company.genex_ec_type or 500
         company_code = company.genex_company_code or 1
-        ref_short = self._short_reference(move)
+        head_desc = self._short_reference(move)
+        jv_ref = self._jv_ref(move)
+        lettrage_ref = move._bks_genex_reconciliation_reference()[:64]
         long_label = self._long_label(move)
         move_date = move.date
-        partner = move.partner_id
-        cif = partner.genex_cif or 0 if partner else 0
         rib = move._get_genex_rib()
 
         lines = move.line_ids.filtered(
-            lambda line: line.display_type not in ("line_section", "line_subsection", "line_note")
+            lambda line: line.display_type
+            not in ("line_section", "line_subsection", "line_note")
             and line.account_id
         )
         for line in lines:
-            amount_mad = abs(line.balance)
+            account = line.account_id.with_company(company)
+            amount_mad = line.balance
             if company.currency_id.is_zero(amount_mad):
                 continue
             amount_currency = None
@@ -309,64 +385,75 @@ class BksGenexExportWizard(models.TransientModel):
                 and line.currency_id != company.currency_id
                 and not line.currency_id.is_zero(line.amount_currency)
             ):
-                amount_currency = abs(line.amount_currency)
+                amount_currency = line.amount_currency
                 if line.currency_rate:
                     rate = line.currency_rate
 
-            serie = 1 if cif else 0
+            genex_keys = self._genex_account_columns(line, company)
             rows.append(
-                (
-                    company_code,
-                    self._agency_code(line, company),
-                    currency_code,
-                    self._gl_code(line.account_id),
-                    cif,
-                    serie,
-                    None,
-                    None,
-                    None,
-                    amount_mad,
-                    amount_currency,
-                    rate,
-                    move_date,
-                    ref_short,
-                    None,
-                    ec_type,
-                    move_date,
-                    long_label,
-                    rib,
-                    None,
-                    None,
-                    ref_short,
-                )
+                {
+                    "COMP_CODE": company_code,
+                    **genex_keys,
+                    "CV_AMOUNT": amount_mad,
+                    "FC_AMOUNT": amount_currency,
+                    "EXCH_RATE": rate,
+                    "VALUE_DATE": move_date,
+                    "HEAD_DESC": head_desc,
+                    "JV_TYPE": jv_type,
+                    "TRANS_DATE": move_date,
+                    "DESCRIPTION": long_label,
+                    "ACC_REFERENCE": rib,
+                    "JV_REF": jv_ref,
+                    "LINK_TO_RJV_TICKET": 0,
+                    "Référence de lettrage": lettrage_ref or None,
+                }
             )
         return rows
 
     @staticmethod
     def _genex_cell_value(value):
-        """Évite d'écrire False/True dans Excel (affichés FAUX/ VRAI)."""
         if value is False or value is True:
             return None
         return value
 
-    def _build_workbook(self, moves):
+    @staticmethod
+    def _export_timestamp():
+        return datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    def _store_filestore_attachment(self, filename, raw_bytes):
+        return self.env["ir.attachment"].create(
+            {
+                "name": filename,
+                "type": "binary",
+                "raw": raw_bytes,
+                "mimetype": (
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+            }
+        )
+
+    def _build_jvticket_workbook(self, moves):
         if not openpyxl:
             raise UserError(
                 _("Bibliothèque Python openpyxl requise : %s") % _openpyxl_import_error
             )
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "GENEX Odoo"
+        ws.title = "Sheet1"
+        company = moves[:1].company_id if moves else self.env.company
         header_font = Font(bold=True)
-        for col, title in enumerate(GENEX_HEADERS, start=1):
-            cell = ws.cell(row=1, column=col, value=title)
+        ws.cell(row=1, column=1, value=company.genex_company_code or 1)
+        ws.cell(row=2, column=1, value=company.genex_default_agency_code or 1000)
+        ws.cell(row=2, column=2, value="GENEX_JVTICKET")
+        for col, title in enumerate(GENEX_JVTICKET_HEADERS, start=1):
+            cell = ws.cell(row=4, column=col, value=title)
             cell.font = header_font
 
-        row_idx = 2
+        row_idx = 5
         for move in moves:
-            company = move.company_id
-            for row in self._line_rows(move, company):
-                for col, value in enumerate(row, start=1):
+            for row in self._line_rows(move, move.company_id):
+                for col, key in enumerate(GENEX_JVTICKET_HEADERS, start=1):
+                    value = row.get(key)
                     if isinstance(value, datetime):
                         value = value.date()
                     ws.cell(
@@ -375,6 +462,63 @@ class BksGenexExportWizard(models.TransientModel):
                         value=self._genex_cell_value(value),
                     )
                 row_idx += 1
+        # Marqueur de fin de fichier (modèle DAS_GENEX_JVTICKET : ligne vide puis <EOF>)
+        ws.cell(row=row_idx + 1, column=1, value="<EOF>")
+        return wb
+
+    @staticmethod
+    def _payment_bank_code(payment):
+        journal = payment.journal_id
+        bank = journal.bank_account_id
+        if bank and bank.bank_id and bank.bank_id.bic:
+            return bank.bank_id.bic
+        if journal.code:
+            return journal.code
+        return ""
+
+    def _payment_settlement_mode_label(self, payment):
+        field = payment._fields.get("l10n_ma_reports_payment_method")
+        code = payment.l10n_ma_reports_payment_method
+        if field and code:
+            labels = dict(field._description_selection(payment.env))
+            label = labels.get(code)
+            if label:
+                return label
+        if payment.payment_method_line_id:
+            return payment.payment_method_line_id.name or ""
+        return ""
+
+    def _build_reglements_workbook(self, payments):
+        if not openpyxl:
+            raise UserError(
+                _("Bibliothèque Python openpyxl requise : %s") % _openpyxl_import_error
+            )
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Reglements"
+        header_font = Font(bold=True)
+        for col, title in enumerate(IMAL_REGLEMENT_HEADERS, start=1):
+            cell = ws.cell(row=1, column=col, value=title)
+            cell.font = header_font
+        row_idx = 2
+        for payment in payments:
+            rib = payment.partner_bank_id.sanitized_acc_number or payment.partner_bank_id.acc_number or ""
+            rib = re.sub(r"[\s\-]", "", str(rib))[:24]
+            ws.cell(row=row_idx, column=1, value=self._payment_bank_code(payment))
+            ws.cell(row=row_idx, column=2, value=payment.amount)
+            ws.cell(row=row_idx, column=3, value=payment.partner_id.name or "")
+            ws.cell(row=row_idx, column=4, value=rib or None)
+            ws.cell(
+                row=row_idx,
+                column=5,
+                value=self._payment_settlement_mode_label(payment) or None,
+            )
+            ws.cell(
+                row=row_idx,
+                column=6,
+                value=self._payment_display_reference(payment) or None,
+            )
+            row_idx += 1
         return wb
 
     def action_export_genex(self):
@@ -382,36 +526,26 @@ class BksGenexExportWizard(models.TransientModel):
         if self.date_from > self.date_to:
             raise UserError(_("La date de début doit être antérieure à la date de fin."))
 
-        moves = self._get_moves()
-        wb = self._build_workbook(moves)
+        ts = self._export_timestamp()
         if self._is_payment_genex_export():
-            payments = self.env["account.payment"].search(
-                [("move_id", "in", moves.ids)]
-            )
+            payments = self._get_payments()
+            wb = self._build_reglements_workbook(payments)
+            filename = "ODOO_IMAL_REGLEMENTS_%s.xlsx" % ts
             payments._mark_genex_exported()
         else:
+            moves = self._get_moves()
+            wb = self._build_jvticket_workbook(moves)
+            filename = "ODOO_GENEX_%s.xlsx" % ts
             moves._mark_genex_exported()
+
         buffer = io.BytesIO()
         wb.save(buffer)
-        filename = "GENEX_%s_%s.xlsx" % (
-            self.date_from.isoformat(),
-            self.date_to.isoformat(),
-        )
-        if self.move_ids and len(self.move_ids) == 1:
-            name = self.move_ids.name or str(self.move_ids.id)
-            filename = "GENEX_%s.xlsx" % re.sub(r"[^\w\-]+", "_", name)
-
+        raw = buffer.getvalue()
+        self._store_filestore_attachment(filename, raw)
         self.write(
             {
-                "file_data": base64.b64encode(buffer.getvalue()),
+                "file_data": base64.b64encode(raw),
                 "file_name": filename,
             }
         )
-        return {
-            "type": "ir.actions.act_window",
-            "res_model": self._name,
-            "view_mode": "form",
-            "res_id": self.id,
-            "target": "new",
-            "name": _("Export GENEX"),
-        }
+        return self._reopen_wizard()

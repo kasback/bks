@@ -40,6 +40,10 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_tree" />
         <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="payment_reference" string="Référence de paiement" optional="show" />
+                <field name="memo" string="Mémo" optional="hide" />
+            </field>
             <list position="inside">
                 <field
                     name="validation_status"
@@ -50,6 +54,27 @@
                     decoration-success="validation_status == 'validated'"
                 />
             </list>
+        </field>
+    </record>
+
+    <record id="view_account_payment_form_bks_ma_ui" model="ir.ui.view">
+        <field name="name">account.payment.form.bks.ma.ui</field>
+        <field name="model">account.payment</field>
+        <field
+            name="inherit_id"
+            ref="rmg_l10n_ma_account.view_account_payment_form_dgi_channel"
+        />
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <field name="payment_method_line_id" position="attributes">
+                <attribute name="invisible">1</attribute>
+                <attribute name="required">0</attribute>
+            </field>
+            <field name="l10n_ma_reports_payment_method" position="attributes">
+                <attribute name="invisible">country_code != 'MA'</attribute>
+                <attribute name="required">country_code == 'MA'</attribute>
+                <attribute name="string">Mode de paiement</attribute>
+            </field>
         </field>
     </record>
 
@@ -83,6 +108,17 @@
             </xpath>
             <field name="state" position="after">
                 <field name="validation_status" invisible="1" />
+            </field>
+            <xpath expr="//div[hasclass('oe_title')]/h1[1]" position="attributes">
+                <attribute
+                    name="invisible"
+                >bks_tier_governed or state != 'draft'</attribute>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]/h1[2]" position="attributes">
+                <attribute name="invisible">not bks_tier_governed and state == 'draft'</attribute>
+            </xpath>
+            <field name="memo" position="attributes">
+                <attribute name="readonly">state not in ('draft', 'in_process')</attribute>
             </field>
         </field>
     </record>

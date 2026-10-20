@@ -6,6 +6,8 @@ from odoo.exceptions import AccessError
 from odoo import api, fields, models
 from odoo.tools.misc import frozendict
 
+from odoo.addons.base_tier_validation.models.tier_validation import _merge_view_fields
+
 _BKS_TIER_FORM_MODELS = frozenset(
     {"purchase.request", "purchase.order", "account.payment", "account.move"}
 )
@@ -13,6 +15,9 @@ _BKS_OPERATION_DEPARTMENT_MODELS = frozenset(
     {"purchase.request", "purchase.order", "account.move"}
 )
 _BKS_OPERATION_DEPARTMENT_FIELD = "bks_operation_department_id"
+_BKS_OPERATION_DEPARTMENT_EXTRA_FIELDS = {
+    "account.move": ("bks_operation_department_manual_id",),
+}
 _BKS_COORD_GROUP_XMLID = "purchase_request_tier_validation.group_coordonnateur"
 _BKS_RESTART_VALIDATION_CONFIRM = (
     "Recommencer la validation réinitialise le circuit en cours. "
@@ -68,12 +73,15 @@ class TierValidation(models.AbstractModel):
 
     @api.model
     def _bks_append_operation_department_exceptions(self, field_names):
-        if (
-            self._name in _BKS_OPERATION_DEPARTMENT_MODELS
-            and _BKS_OPERATION_DEPARTMENT_FIELD in self._fields
-            and _BKS_OPERATION_DEPARTMENT_FIELD not in field_names
-        ):
-            field_names.append(_BKS_OPERATION_DEPARTMENT_FIELD)
+        if self._name in _BKS_OPERATION_DEPARTMENT_MODELS:
+            if (
+                _BKS_OPERATION_DEPARTMENT_FIELD in self._fields
+                and _BKS_OPERATION_DEPARTMENT_FIELD not in field_names
+            ):
+                field_names.append(_BKS_OPERATION_DEPARTMENT_FIELD)
+            for fname in _BKS_OPERATION_DEPARTMENT_EXTRA_FIELDS.get(self._name, ()):
+                if fname in self._fields and fname not in field_names:
+                    field_names.append(fname)
         return field_names
 
     @api.model
@@ -309,15 +317,23 @@ class TierValidation(models.AbstractModel):
                 "invisible",
                 f"({base_invisible}) or not bks_can_restart_validation",
             )
+        review_field = (
+            "tier_review_all_ids"
+            if "tier_review_all_ids" in self.env[model_name]._fields
+            else "review_ids"
+        )
         for field in doc.xpath("//field[@widget='tier_validation']"):
-            field.set("name", "tier_review_all_ids")
-            field.set("invisible", "not tier_review_all_ids")
+            field.set("name", review_field)
+            field.set("invisible", f"not {review_field}")
         if model_name == "purchase.order":
             self._bks_patch_po_send_email_buttons(doc)
-        res["arch"] = etree.tostring(doc, encoding="unicode")
+        View = self.env["ir.ui.view"]
+        new_arch, new_models = View.postprocess_and_fields(doc, model_name)
+        res["arch"] = new_arch
         all_models = dict(res.get("models") or {})
+        _merge_view_fields(all_models, new_models)
         fields_tuple = tuple(all_models.get(model_name, ()))
-        extra_fields = ["bks_can_restart_validation", "tier_review_all_ids"]
+        extra_fields = ["bks_can_restart_validation", review_field]
         if model_name == "purchase.order":
             extra_fields.extend(
                 [

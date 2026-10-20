@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="purchase_request_line_tree_bks_po_folder_readonly" model="ir.ui.view">
+        <field name="name">purchase.request.line.list.bks.po.folder</field>
+        <field name="model">purchase.request.line</field>
+        <field name="inherit_id" ref="purchase_request.purchase_request_line_tree" />
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="create">not context.get('bks_pr_lines_readonly')</attribute>
+                <attribute name="edit">not context.get('bks_pr_lines_readonly')</attribute>
+            </list>
+        </field>
+    </record>
+
+    <record id="purchase_request_line_form_po_folder_readonly" model="ir.ui.view">
+        <field name="name">purchase.request.line.form.po.folder.readonly</field>
+        <field name="model">purchase.request.line</field>
+        <field name="inherit_id" ref="purchase_request.purchase_request_line_form" />
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <form position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+            </form>
+            <field name="is_editable" position="before">
+                <field name="bks_readonly_po_folder" invisible="1" />
+            </field>
+            <xpath
+                expr="//page[@name='purchase_lines']/field[@name='purchase_lines']"
+                position="attributes"
+            >
+                <attribute name="readonly">1</attribute>
+                <attribute
+                    name="options"
+                >{'no_create': True, 'no_delete': True, 'no_open': False}</attribute>
+            </xpath>
+            <xpath
+                expr="//page[@name='allocations']/field[@name='purchase_request_allocation_ids']"
+                position="attributes"
+            >
+                <attribute name="readonly">1</attribute>
+            </xpath>
+            <xpath
+                expr="//page[@name='allocations']/field[@name='purchase_request_allocation_ids']/list"
+                position="attributes"
+            >
+                <attribute name="create">false</attribute>
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="purchase_order_line_tree_sub_bks_po_folder" model="ir.ui.view">
+        <field name="name">purchase.order.line.list.sub.bks.po.folder</field>
+        <field name="model">purchase.order.line</field>
+        <field name="inherit_id" ref="purchase_request.purchase_order_line_tree_sub" />
+        <field name="arch" type="xml">
+            <list position="attributes">
+                <attribute name="create">not context.get('bks_pr_lines_readonly')</attribute>
+                <attribute name="edit">not context.get('bks_pr_lines_readonly')</attribute>
+                <attribute name="delete">not context.get('bks_pr_lines_readonly')</attribute>
+            </list>
+        </field>
+    </record>
+
+    <record id="purchase_order_line_form2_bks_pr_readonly" model="ir.ui.view">
+        <field name="name">purchase.order.line.form2.pr.readonly</field>
+        <field name="model">purchase.order.line</field>
+        <field name="inherit_id" ref="purchase_request.purchase_order_line_form2" />
+        <field name="arch" type="xml">
+            <field name="purchase_request_lines" position="attributes">
+                <attribute name="readonly">1</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

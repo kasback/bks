@@ -29,3 +29,8 @@ class PurchaseRequestLineMakePurchaseOrder(models.TransientModel):
                     )
                 )
         return super().make_purchase_order()
+
+    @api.model
+    def _get_order_line_search_domain(self, order, item):
+        """Ne pas fusionner deux lignes DA sur le même article dans une DP."""
+        return [(0, "=", 1)]

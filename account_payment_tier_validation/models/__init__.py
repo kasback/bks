@@ -2,5 +2,6 @@
 
 from . import account_move
 from . import account_payment
+from . import account_payment_ma_bank
 from . import account_payment_register
 from . import tier_definition

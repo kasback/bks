@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Manuel utilisateur — Circuit achats Bank Assafa</title>
+<style>
+  @page {
+    size: A4;
+    margin: 14mm 12mm 14mm 12mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      color: #5c6b73;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: #1c2b33;
+    font-size: 11pt;
+    line-height: 1.45;
+  }
+  header.brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0 0 8mm 0;
+    padding: 0 0 3mm 0;
+    background: #fff;
+    border-bottom: 2px solid #0b6b63;
+  }
+  header.brand img.osi {
+    height: 16mm;
+    width: auto;
+  }
+  header.brand img.bank {
+    height: 11mm;
+    width: auto;
+  }
+  main {
+    padding-top: 0;
+  }
+  h1 {
+    font-size: 18pt;
+    line-height: 1.25;
+    color: #0b3d4a;
+    margin: 0 0 8px 0;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 14.5pt;
+    color: #0b6b63;
+    margin: 18px 0 8px;
+    padding-top: 4px;
+    border-top: 1px solid #d5e4e1;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #14505a;
+    margin: 14px 0 6px;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 8px; }
+  ul, ol { margin: 0 0 10px; padding-left: 18px; }
+  li { margin: 0 0 3px; }
+  code {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 0.92em;
+    background: #f3f6f6;
+    padding: 0 3px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8px 0 12px;
+    font-size: 10pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #c9d7d4;
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #0b6b63;
+    color: #fff;
+    font-weight: 600;
+  }
+  tr:nth-child(even) td { background: #f4faf9; }
+  figure {
+    margin: 8px 0 14px;
+    page-break-inside: avoid;
+  }
+  figure img {
+    width: 100%;
+    height: auto;
+    border: 1px solid #d0d7d6;
+    border-radius: 2px;
+  }
+  figcaption {
+    font-size: 9pt;
+    color: #5c6b73;
+    margin-top: 3px;
+    font-style: italic;
+  }
+  hr {
+    border: 0;
+    border-top: 1px solid #e3ecea;
+    margin: 12px 0;
+  }
+</style>
+</head>
+<body>
+<header class="brand">
+  <img class="osi" src="images/logos/osisoftware.png" alt="Osisoftware">
+  <img class="bank" src="images/logos/bank_assafa.png" alt="Bank Assafa">
+</header>
+<main>
+<h1>Manuel utilisateur — Circuit achats Bank Assafa</h1>
+<p>Ce guide suit un achat de bout en bout, écran par écran : <strong>demande d’achat</strong>, <strong>demande de prix</strong>, <strong>bon de commande</strong>, <strong>réception</strong>, <strong>facture fournisseur</strong> et <strong>paiement</strong>.</p>
+<p>Chaque document métier (sauf la réception) passe par un <strong>circuit de signatures</strong>. Tant que le circuit n’est pas terminé, l’étape suivante reste bloquée : on ne confirme pas la demande, on ne confirme pas la commande, on ne comptabilise pas la facture, on ne solde pas le paiement.</p>
+<p>Les captures viennent de l’application <strong>Achats</strong>, société <strong>Bank Assafa</strong>.</p>
+<hr>
+<h2>1. Les rôles</h2>
+<table><tr><th>Rôle</th><th>Ce qu’il fait</th></tr><tr><td><strong>Ordonnateur</strong></td><td>Crée la demande d’achat et la signe en premier</td></tr><tr><td><strong>Supérieur hiérarchique</strong></td><td>Deuxième signature de la demande. Il est repris de la fiche employé du demandeur (champ <strong>Approbateur</strong>)</td></tr><tr><td><strong>Acheteur</strong></td><td>Transforme une demande approuvée en demande de prix</td></tr><tr><td><strong>Responsable Achats</strong></td><td>Dernière signature de la demande, première du bon de commande, et signature de la facture</td></tr><tr><td><strong>Co-ordonnateur</strong></td><td>Deuxième signature du bon de commande et de la facture, pour son unité opérationnelle</td></tr><tr><td><strong>Directeur du Pôle</strong></td><td>Troisième signature du bon de commande entre 40 000 et 700 000 DH TTC</td></tr><tr><td><strong>Président</strong></td><td>Troisième signature du bon de commande au-dessus de 700 000 DH TTC</td></tr><tr><td><strong>Chargé de facturation</strong></td><td>Première signature de la facture fournisseur</td></tr><tr><td><strong>Direction financière</strong> (groupe Chargé règlement)</td><td>Dernière signature de la facture</td></tr><tr><td><strong>Responsable de règlement</strong></td><td>Signature unique du paiement</td></tr></table>
+<p>L’unité opérationnelle n’est pas saisie à la main. Elle vient du département du demandeur, et sert au co-ordonnateur pour voir les documents de son périmètre.</p>
+<hr>
+<h2>2. Demande d’achat</h2>
+<p><strong>Menu :</strong> Achats → Commandes → Demandes d’achat.</p>
+<h3>2.1 Ouvrir la liste</h3>
+<p>La liste affiche la référence, le demandeur et l’état (<strong>Brouillon</strong>, <strong>In progress</strong>, <strong>Terminé</strong>).</p>
+<figure><img src="images/da-01-liste.png" alt="Liste des demandes d&#x27;achat"><figcaption>Liste des demandes d&#x27;achat</figcaption></figure>
+<h3>2.2 Créer la demande</h3>
+<p>Cliquez sur <strong>Nouveau</strong>.</p>
+<p>Le formulaire s’ouvre en <strong>Brouillon</strong>. Le <strong>Demandeur (Ordonnateur)</strong> est l’utilisateur connecté. L’<strong>Approbateur (supérieur hiérarchique)</strong> se remplit tout seul dès l’enregistrement, à partir de la fiche employé. S’il reste vide, la demande de validation sera refusée : il faut d’abord lier un supérieur, et un utilisateur à ce supérieur, sur la fiche employé.</p>
+<figure><img src="images/da-02-nouveau.png" alt="Nouvelle demande d&#x27;achat, formulaire vide"><figcaption>Nouvelle demande d&#x27;achat, formulaire vide</figcaption></figure>
+<h3>2.3 Choisir l’article</h3>
+<ol><li>Dans l’onglet <strong>Articles</strong>, cliquez sur <strong>Ajouter une ligne</strong>.</li><li>Dans la colonne <strong>Produit</strong>, tapez le nom ou la référence.</li><li>Choisissez l’article dans la liste (exemple : <strong>Architecte</strong>, référence <strong>AGE001</strong>). Ne cliquez pas sur <strong>Créer</strong> : l’article doit déjà exister dans le référentiel.</li></ol>
+<figure><img src="images/da-03-ajout-article.png" alt="Saisie de l&#x27;article et liste de recherche"><figcaption>Saisie de l&#x27;article et liste de recherche</figcaption></figure>
+<ol><li>La ligne reprend la description de l’article. Saisissez la <strong>quantité</strong>. La <strong>date de la demande</strong> est proposée. Le <strong>coût estimé</strong> peut rester à zéro : le prix réel sera porté sur le bon de commande.</li><li>Renseignez la <strong>Description</strong> de la demande (objet de l’achat).</li></ol>
+<figure><img src="images/da-04-ligne.png" alt="Ligne article ajoutée, quantité 1, description renseignée"><figcaption>Ligne article ajoutée, quantité 1, description renseignée</figcaption></figure>
+<ol><li>Enregistrez (icône d’enregistrement, ou quittez le champ : l’enregistrement est automatique). La référence est attribuée, par exemple <strong>PR00036</strong>. L’approbateur apparaît.</li></ol>
+<h3>2.4 Soumettre pour validation</h3>
+<p>Sur la demande enregistrée, cliquez sur <strong>Demander validation</strong>.</p>
+<figure><img src="images/da-05-demander-validation.png" alt="Demande PR00036 en brouillon, bouton Demander validation"><figcaption>Demande PR00036 en brouillon, bouton Demander validation</figcaption></figure>
+<p>Le bandeau passe au jaune : la première signature est attendue. Le demandeur clique sur <strong>Valider</strong> (ou <strong>Rejeter</strong>).</p>
+<figure><img src="images/da-06-en-validation.png" alt="Bandeau : validation en attente du demandeur"><figcaption>Bandeau : validation en attente du demandeur</figcaption></figure>
+<p>Un commentaire peut être demandé. Saisissez-le, puis cliquez sur <strong>Commentaire</strong>. <strong>Annuler</strong> ferme la fenêtre sans signer.</p>
+<figure><img src="images/da-08-valider-commentaire.png" alt="Fenêtre de commentaire avant de valider"><figcaption>Fenêtre de commentaire avant de valider</figcaption></figure>
+<h3>2.5 Le circuit, signature après signature</h3>
+<p>Ouvrez le bloc <strong>Revues</strong> en bas du formulaire. Les trois signatures sont créées dès la demande. Une seule est active à la fois : la suivante passe <strong>En attente</strong> seulement quand la précédente est <strong>Approuvé</strong>.</p>
+<table><tr><th>Ordre</th><th>Signature</th><th>Qui signe</th></tr><tr><td>1</td><td>DA — Signature Ordonnateur (demandeur)</td><td>L’utilisateur du champ <strong>Demandeur</strong></td></tr><tr><td>2</td><td>DA — Signature supérieur hiérarchique</td><td>L’utilisateur du champ <strong>Approbateur</strong></td></tr><tr><td>3</td><td>DA — Validation Responsable Achats</td><td>Le groupe Responsable Achats</td></tr></table>
+<p>Juste après <strong>Demander validation</strong>, les trois lignes sont <strong>En attente</strong>, et la première est à faire par le demandeur.</p>
+<figure><img src="images/da-07-revues.png" alt="Les trois revues créées, toutes en attente"><figcaption>Les trois revues créées, toutes en attente</figcaption></figure>
+<p>Après la signature du demandeur, le bandeau indique la suite : <strong>DA — Signature supérieur hiérarchique</strong>. Le bouton <strong>Valider</strong> disparaît pour les autres utilisateurs. Le supérieur ouvre la même demande, lit le bandeau, et clique sur <strong>Valider</strong>. Le responsable achats fait de même en dernier.</p>
+<figure><img src="images/da-09-apres-premiere-signature.png" alt="Première signature approuvée, la suivante est le supérieur"><figcaption>Première signature approuvée, la suivante est le supérieur</figcaption></figure>
+<figure><img src="images/da-10-revues-apres-signature.png" alt="Revue 1 approuvée, revues 2 et 3 encore en attente"><figcaption>Revue 1 approuvée, revues 2 et 3 encore en attente</figcaption></figure>
+<p>Le demandeur voit passer sa demande dans la messagerie à droite (<strong>Une revue a été demandée</strong>, puis <strong>Une revue a été acceptée</strong>).</p>
+<p>Quand les trois lignes sont <strong>Approuvé</strong>, le demandeur (ou un ordonnateur / responsable achats) clique sur <strong>Confirm</strong>. L’état passe de <strong>Brouillon</strong> à <strong>Approuvé</strong>.</p>
+<p>Tant que la demande n’est pas approuvée, l’acheteur ne peut pas en faire une demande de prix.</p>
+<p><strong>Recommencer la validation</strong> efface le circuit en cours (les anciennes signatures restent dans l’historique, annulées) et il faut redemander la validation. Seuls les profils autorisés voient ce bouton.</p>
+<hr>
+<h2>3. L’acheteur : de la demande approuvée à la demande de prix</h2>
+<p><strong>Menu :</strong> Achats → Commandes → Demandes d’achat, puis ouvrez une demande <strong>Approuvée</strong>.</p>
+<p>Le bouton <strong>Créer une demande de prix</strong> est visible pour l’<strong>acheteur</strong> (et le responsable achats) uniquement sur une demande <strong>Approuvée</strong> ou <strong>In progress</strong>.</p>
+<figure><img src="images/da-11-approuve-creer-ddp.png" alt="Demande PR00007 approuvée, bouton Créer une demande de prix"><figcaption>Demande PR00007 approuvée, bouton Créer une demande de prix</figcaption></figure>
+<p>Cliquez sur <strong>Créer une demande de prix</strong>. L’assistant s’ouvre :</p>
+<ol><li><strong>Supplier</strong> : choisissez le fournisseur (ici Fournisseur1).</li><li>Vérifiez les lignes : article, description, quantité à acheter.</li><li>Laissez décochée <strong>Demande de prix existante</strong> si vous créez une nouvelle commande. Cochez-la seulement pour ajouter ces lignes à une demande de prix déjà ouverte.</li><li>Cliquez sur <strong>Créer une demande de prix</strong>. <strong>Annuler</strong> ferme l’assistant sans rien créer.</li></ol>
+<figure><img src="images/ddp-01-assistant.png" alt="Assistant de création de la demande de prix"><figcaption>Assistant de création de la demande de prix</figcaption></figure>
+<p>La demande de prix est créée en brouillon, statut <strong>Demande de prix</strong>. Elle porte le fournisseur, les articles, les quantités et les taxes du référentiel (TVA, et les mentions de RAS affichées à titre d’information : elles ne modifient pas le total de la commande).</p>
+<p>Exemple <strong>P00046</strong>, fournisseur 7EME AVENUE HOTELS, total <strong>2 400,00 DH</strong>.</p>
+<figure><img src="images/ddp-02-formulaire.png" alt="Demande de prix P00046"><figcaption>Demande de prix P00046</figcaption></figure>
+<p>Le bouton <strong>Envoyer une demande de prix</strong> (e-mail au fournisseur) n’apparaît que pour les utilisateurs du groupe prévu à cet effet.</p>
+<hr>
+<h2>4. Validation du bon de commande</h2>
+<p>Le circuit démarre sur la demande de prix. <strong>Confirmer la commande</strong> ne devient possible qu’une fois toutes les signatures obtenues.</p>
+<table><tr><th>Ordre</th><th>Signature</th><th>Quand</th></tr><tr><td>1</td><td>BDC — 1ère signature Responsable Achats</td><td>Toujours</td></tr><tr><td>2</td><td>BDC — 2ème signature Co-ordonnateur</td><td>Toujours, le co-ordonnateur de l’unité opérationnelle</td></tr><tr><td>3</td><td>BDC — 3ème signature Directeur du Pôle (40–700 KDH)</td><td>Total TTC entre 40 000 DH et 700 000 DH</td></tr><tr><td>3</td><td>BDC — 3ème signature Président</td><td>Total TTC supérieur à 700 000 DH</td></tr></table>
+<p>Jusqu’à <strong>40 000 DH TTC</strong>, il n’y a pas de troisième signature.</p>
+<p>Sur <strong>P00046</strong> (2 400 DH), deux signatures seulement. La première est déjà <strong>Approuvé</strong>. La deuxième reste <strong>En attente</strong> : le bandeau nomme le signataire suivant. Ici, aucun co-ordonnateur n’est rattaché à l’unité de cette commande, donc la ligne indique <strong>Aucun co-ordonnateur pour cette unité opérationnelle</strong>. Dès qu’un co-ordonnateur est défini pour cette unité, c’est lui qui voit le bouton <strong>Valider</strong>.</p>
+<figure><img src="images/bdc-01-revues.png" alt="Revues du bon de commande sous 40 000 DH"><figcaption>Revues du bon de commande sous 40 000 DH</figcaption></figure>
+<p>Sur <strong>P00043</strong> (96 000 DH TTC), la troisième ligne apparaît : <strong>Directeur du Pôle</strong>. Elle reste en attente tant que le co-ordonnateur n’a pas signé.</p>
+<figure><img src="images/bdc-02-trois-signatures.png" alt="Trois signatures pour un bon entre 40 000 et 700 000 DH"><figcaption>Trois signatures pour un bon entre 40 000 et 700 000 DH</figcaption></figure>
+<p>Chaque signataire ouvre le bon, lit le bandeau, clique sur <strong>Valider</strong> ou <strong>Rejeter</strong>, avec un commentaire si la fenêtre le demande.</p>
+<p>Quand le circuit est terminé, cliquez sur <strong>Confirmer la commande</strong>. Le statut passe à <strong>Bon de commande fournisseur</strong>.</p>
+<hr>
+<h2>5. Réceptionner la marchandise</h2>
+<p>Il n’y a pas de circuit de signatures sur la réception. On valide les quantités reçues.</p>
+<ol><li>Ouvrez le <strong>bon de commande</strong> confirmé.</li><li>Cliquez sur le smart button <strong>Réception</strong> (le chiffre indique le nombre de réceptions).</li></ol>
+<p>Sur <strong>P00042</strong>, le bouton affiche <strong>2 Réception</strong>. Une ligne est déjà reçue (colonne <strong>Reçu</strong> = 1,00), l’autre est encore à 0,00. Le smart button <strong>FNP</strong> ouvre la provision de facture non parvenue générée par les réceptions déjà validées.</p>
+<figure><img src="images/bdc-03-smart-reception.png" alt="Bon de commande P00042, smart button Réception"><figcaption>Bon de commande P00042, smart button Réception</figcaption></figure>
+<ol><li>La liste des transferts s’ouvre. Ouvrez la réception au statut <strong>Prêt</strong> (exemple <strong>WH/IN/00049</strong>). Une réception <strong>Terminé</strong> est déjà validée.</li></ol>
+<figure><img src="images/rec-01-liste.png" alt="Réceptions du bon P00042"><figcaption>Réceptions du bon P00042</figcaption></figure>
+<ol><li>Contrôlez l’article, la quantité demandée et la quantité faite. En cas de livraison partielle, baissez la quantité faite : le reste restera à recevoir.</li><li>Cliquez sur <strong>Valider</strong>.</li></ol>
+<figure><img src="images/rec-02-valider.png" alt="Réception WH/IN/00049 prête, bouton Valider"><figcaption>Réception WH/IN/00049 prête, bouton Valider</figcaption></figure>
+<p>La validation crée la provision <strong>FNP</strong> (charge ou immobilisation constatée avant la facture, sur le compte FNP du fournisseur). Cette provision est extournée quand la facture fournisseur est comptabilisée. Une même réception ne génère qu’une provision.</p>
+<p>Le bouton <strong>Recevoir</strong> sur le bon de commande ouvre la même réception.</p>
+<hr>
+<h2>6. Facture fournisseur</h2>
+<p><strong>Menu :</strong> Comptabilité → Fournisseurs → Factures, ou le bouton <strong>Créer une facture</strong> sur le bon de commande confirmé.</p>
+<h3>6.1 Créer la facture</h3>
+<p>Depuis le bon de commande, <strong>Créer une facture</strong> reprend le fournisseur, les articles, les quantités reçues, les prix et la TVA. Le fournisseur d’une facture issue d’un bon de commande ne se change plus.</p>
+<p>On peut aussi créer la facture directement (<strong>Nouveau</strong> dans Factures fournisseurs). L’unité opérationnelle est alors celle du département de la personne qui crée la facture.</p>
+<p>La facture brouillon porte le bouton <strong>Demander validation</strong>. Les taxes de la ligne sont la TVA, plus la RAS seulement si le moteur fiscal la propose (nature de la prestation, statut du fournisseur, seuils de 5 000 DH par facture et 50 000 DH par mois). Le total reste <strong>HT + TVA</strong>. La RAS n’est pas déduite ici : elle le sera au paiement.</p>
+<figure><img src="images/fac-03-brouillon-demander.png" alt="Facture brouillon, bouton Demander validation"><figcaption>Facture brouillon, bouton Demander validation</figcaption></figure>
+<h3>6.2 Faire signer la facture</h3>
+<p>Cliquez sur <strong>Demander validation</strong>. Les signataires se suivent. Chacun ouvre la facture, clique sur <strong>Valider</strong> ou <strong>Rejeter</strong>, et commente si la fenêtre s’ouvre.</p>
+<table><tr><th>Ordre</th><th>Signature</th><th>Qui</th></tr><tr><td>1</td><td>Validation Chargé facturation</td><td>Groupe Chargé de facturation</td></tr><tr><td>2</td><td>Validation Co-ordonnateur</td><td>Co-ordonnateur de l’unité</td></tr><tr><td>3</td><td>Validation Responsable achats</td><td>Groupe Responsable Achats</td></tr><tr><td>4</td><td>Validation Direction financière</td><td>Groupe Chargé règlement</td></tr></table>
+<p><strong>Comptabiliser</strong> n’est possible qu’après la dernière signature. Sans cela, la comptabilisation est bloquée.</p>
+<p>La facture <strong>FACTU/2026/10/0018</strong> est <strong>Comptabilisée</strong>. Le bouton <strong>Payer</strong> est disponible. Les quatre revues sont <strong>Approuvé</strong>.</p>
+<figure><img src="images/fac-01-comptabilisee.png" alt="Facture fournisseur comptabilisée"><figcaption>Facture fournisseur comptabilisée</figcaption></figure>
+<figure><img src="images/fac-02-revues.png" alt="Quatre signatures de la facture"><figcaption>Quatre signatures de la facture</figcaption></figure>
+<p>Les comptes de RAS (361904, 361905, etc.) ne bougent pas à la comptabilisation. Ils sont mouvementés au <strong>paiement</strong>, quand la retenue est réellement opérée.</p>
+<p><strong>Avoir</strong> et la remise en brouillon sont réservés à la direction financière.</p>
+<hr>
+<h2>7. Paiement</h2>
+<ol><li>Sur la facture <strong>Comptabilisée</strong>, cliquez sur <strong>Payer</strong>.</li><li>Contrôlez le <strong>journal</strong>, le <strong>mode de paiement</strong>, le <strong>montant</strong>, la <strong>date de règlement</strong> et le <strong>mémo</strong>.</li><li>Si une RAS s’applique, cochez <strong>Appliquer les retenues</strong>. Le montant versé au fournisseur devient le net (total facture moins RAS). Les lignes de retenue passent sur les comptes de RAS.</li><li>Cliquez sur <strong>Créer un paiement</strong>. <strong>Ignorer</strong> ferme l’assistant sans payer.</li></ol>
+<figure><img src="images/pay-01-assistant.png" alt="Assistant de paiement depuis la facture"><figcaption>Assistant de paiement depuis la facture</figcaption></figure>
+<p>Le paiement entre dans son circuit. Une seule signature :</p>
+<table><tr><th>Ordre</th><th>Signature</th><th>Qui</th></tr><tr><td>1</td><td>Paiement — Validation Responsable de règlement</td><td>Groupe Responsable de règlement</td></tr></table>
+<p>Le responsable de règlement ouvre le paiement et clique sur <strong>Valider</strong> dans le bandeau. Quand la revue est <strong>Approuvé</strong>, le paiement peut être confirmé : il passe <strong>En cours de traitement</strong>. L’écriture comptable reste en brouillon tant que le paiement n’est pas exporté vers GENEX, puis validé définitivement (voir la section Export GENEX).</p>
+<p>Exemple <strong>PBNK1/2026/00014</strong>, virement de 3 840,00 DH, revue approuvée par le responsable de règlement. Le smart button <strong>Facture</strong> ramène à la facture réglée. <strong>Écriture comptable</strong> ouvre les comptes, y compris la RAS si elle a été appliquée.</p>
+<figure><img src="images/pay-02-paiement.png" alt="Paiement et sa revue"><figcaption>Paiement et sa revue</figcaption></figure>
+<hr>
+<h2>8. Contraintes</h2>
+<p>Ces blocages sont voulus. Le bouton peut disparaître, ou un message empêche l’action.</p>
+<h3>Facture fournisseur</h3>
+<table><tr><th>Action</th><th>Bloquée quand</th></tr><tr><td><strong>Remettre en brouillon</strong></td><td>Un paiement est lié à la facture (brouillon, en cours ou payé). Il faut d’abord traiter ce paiement.</td></tr><tr><td><strong>Annuler</strong></td><td>Même règle : un paiement lié interdit l’annulation.</td></tr><tr><td><strong>Avoir</strong> (extourne)</td><td>Même règle : un paiement lié interdit l’avoir.</td></tr><tr><td><strong>Remettre en brouillon</strong> et <strong>Avoir</strong></td><td>Réservés à la direction financière (comptabilité ou administration). Les autres profils voient le message correspondant.</td></tr><tr><td><strong>Comptabiliser</strong></td><td>Le circuit de signatures n’est pas terminé.</td></tr><tr><td>Changer le <strong>fournisseur</strong></td><td>La facture est issue d’un bon de commande, même en brouillon.</td></tr><tr><td><strong>Remettre en brouillon</strong></td><td>L’écriture a déjà été exportée vers GENEX. Le bouton disparaît.</td></tr></table>
+<h3>Paiement</h3>
+<table><tr><th>Action</th><th>Bloquée quand</th></tr><tr><td><strong>Confirmer</strong></td><td>Le circuit du responsable de règlement n’est pas approuvé.</td></tr><tr><td><strong>Valider</strong> (comptabilisation définitive)</td><td>Le paiement n’a pas encore été exporté vers GENEX. Le message demande d’exporter d’abord.</td></tr><tr><td><strong>Remettre en brouillon</strong></td><td>Le paiement est déjà exporté GENEX, ou il est <strong>Annulé</strong>. Un paiement annulé ne se réouvre pas : il faut en créer un nouveau.</td></tr><tr><td><strong>Recommencer la validation</strong></td><td>Le paiement est déjà exporté GENEX.</td></tr><tr><td><strong>Remettre en brouillon</strong> et <strong>Annuler</strong></td><td>La RAS de ce paiement est déjà déclarée (déclaration de RAS TVA ou de RAS sur le revenu confirmée ou terminée). Il faut d’abord remettre cette déclaration en brouillon.</td></tr></table>
+<h3>Demande d’achat et bon de commande</h3>
+<ul><li>Sans supérieur hiérarchique lié à un utilisateur sur la fiche employé, <strong>Demander validation</strong> est refusé.</li><li><strong>Créer une demande de prix</strong> n’apparaît que sur une demande <strong>Approuvée</strong> ou en cours, et seulement pour l’acheteur.</li><li><strong>Confirmer la commande</strong> n’est possible qu’après la fin du circuit du bon de commande.</li><li>L’envoi de la demande de prix par e-mail et l’envoi du bon de commande sont réservés aux groupes prévus. Le co-ordonnateur seul ne les voit pas.</li><li><strong>Créer une facture</strong> depuis le bon de commande est réservé à la comptabilité fournisseurs ou au responsable achats.</li></ul>
+<hr>
+<h2>9. Export GENEX des paiements</h2>
+<p>GENEX (iMal) reçoit les règlements fournisseurs <strong>avant</strong> leur comptabilisation définitive.</p>
+<ol><li>Le paiement doit être <strong>approuvé</strong> par le responsable de règlement et à l’état <strong>En cours de traitement</strong>, avec une écriture comptable associée. La case <strong>Est exporté GENEX</strong> est encore décochée.</li><li>Ouvrez <strong>Comptabilité → Fournisseurs → Paiements</strong>.</li><li>Cochez un ou plusieurs paiements, puis <strong>Action → Export GENEX</strong>.</li><li>L’assistant liste les paiements (date, référence, fournisseur, montant, journal). Retirez une ligne si elle ne doit pas partir.</li><li>Cliquez sur <strong>Exporter</strong>. Le fichier <strong>ODOO_IMAL_REGLEMENTS_…xlsx</strong> se télécharge. <strong>Fermer</strong> quitte l’assistant.</li></ol>
+<p>Le paiement est alors marqué <strong>Est exporté GENEX</strong>, avec la date et l’utilisateur. Le bouton <strong>Valider</strong> apparaît : il comptabilise l’écriture et passe le paiement à <strong>Payé</strong>.</p>
+<p>Un paiement déjà exporté ne peut plus être remis en brouillon ni voir son circuit recommencé.</p>
+<hr>
+<h2>10. Export GENEX des écritures comptables</h2>
+<p>Les écritures (factures comptabilisées, provisions, extournes, paiements comptabilisés) partent dans un second fichier.</p>
+<ol><li>Menu <strong>Comptabilité → Rapports → Export GENEX</strong>. On peut aussi, depuis la liste ou la fiche des pièces comptables, utiliser <strong>Action → Export GENEX</strong>.</li><li>Indiquez la <strong>date de début</strong> et la <strong>date de fin</strong>. La date de début doit être avant la date de fin.</li><li>Les <strong>journaux</strong> sont facultatifs. Sans journal, toutes les écritures <strong>comptabilisées</strong> et <strong>non encore exportées</strong> de la période sont proposées.</li><li>Cliquez sur <strong>Actualiser la liste</strong> pour recharger les pièces. Retirez celles à exclure.</li><li>Cliquez sur <strong>Exporter</strong>. Le fichier <strong>ODOO_GENEX_…xlsx</strong> se télécharge.</li></ol>
+<p>Seules les écritures comptabilisées et pas encore marquées GENEX sont acceptées. Après l’export, la pièce affiche <strong>Export GENEX</strong> (date et utilisateur). Elle ne peut plus être remise en brouillon.</p>
+<p>Les filtres <strong>Non exportées GENEX</strong> et <strong>Exportées GENEX</strong> sont disponibles sur la recherche des pièces.</p>
+<hr>
+<h2>11. Recommencer une validation</h2>
+<p>Si un montant, un fournisseur ou une ligne doit être corrigé alors que le circuit est déjà lancé :</p>
+<ol><li>Cliquez sur <strong>Recommencer la validation</strong>.</li><li>Confirmez : le circuit en cours est réinitialisé.</li><li>Les signatures déjà données restent visibles, avec le statut annulé.</li><li>Cliquez à nouveau sur <strong>Demander validation</strong> et refaites toutes les signatures.</li></ol>
+<p>Le co-ordonnateur qui n’a aucun autre rôle achats ne voit pas ce bouton. Il signe, il ne relance pas le circuit.</p>
+<hr>
+<h2>12. Rappels</h2>
+<ul><li><strong>Demander validation</strong> lance les signatures. <strong>Valider</strong> / <strong>Rejeter</strong> dans le bandeau jaune les donne, une par une, dans l’ordre du bloc <strong>Revues</strong>.</li><li><strong>Confirm</strong> sur la demande d’achat, <strong>Confirmer la commande</strong> sur le bon, et <strong>Comptabiliser</strong> sur la facture n’interviennent qu’après la dernière signature.</li><li>Une facture qui a un paiement ne se remet pas en brouillon, ne s’annule pas et ne s’extourne pas.</li><li>Le paiement se comptabilise définitivement seulement après l’export GENEX.</li><li>La réception se valide par <strong>Valider</strong> sur le transfert <strong>Prêt</strong>, ouvert depuis le smart button <strong>Réception</strong> du bon de commande.</li><li>La RAS proposée sur la facture brouillon n’écrit pas dans les comptes de RAS. Ces comptes bougent au paiement.</li><li>Sans supérieur hiérarchique lié à un utilisateur sur la fiche employé, la demande d’achat ne peut pas être soumise.</li></ul>
+</main>
+</body>
+</html>

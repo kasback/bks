@@ -5,8 +5,29 @@
         <field name="model">account.account</field>
         <field name="inherit_id" ref="account.view_account_form" />
         <field name="arch" type="xml">
+            <xpath expr="//page[@name='accounting']/group" position="after">
+                <group string="Nomenclature GENEX / iMal" name="genex_nomenclature">
+                    <group>
+                        <field name="genex_agency_code" string="Code agence" />
+                        <field name="genex_currency_code" string="Code devise" />
+                        <field name="genex_cif" string="CIF" />
+                        <field name="genex_sequence" string="Séquence" />
+                    </group>
+                    <group>
+                        <field name="genex_full_code" string="Code complet" readonly="1" />
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_account_list_genex" model="ir.ui.view">
+        <field name="name">account.account.list.genex</field>
+        <field name="model">account.account</field>
+        <field name="inherit_id" ref="account.view_account_list" />
+        <field name="arch" type="xml">
             <field name="code" position="after">
-                <field name="genex_gl_code" placeholder="6 chiffres" />
+                <field name="genex_full_code" string="Code complet" optional="show" />
             </field>
         </field>
     </record>

@@ -40,6 +40,32 @@ class PurchaseRequest(models.Model):
             request.bks_operation_department_id = department
         self._bks_refresh_coordonnateur_reviewers()
 
+    def action_view_purchase_request_line(self):
+        """Smart button « Lignes » : consultation seule."""
+        action = super().action_view_purchase_request_line()
+        ctx = action.get("context") or {}
+        if not isinstance(ctx, dict):
+            ctx = {}
+        else:
+            ctx = dict(ctx)
+        ctx["bks_pr_lines_readonly"] = True
+        action["context"] = ctx
+        form_view = self.env.ref(
+            "bks_purchase_approval.purchase_request_line_form_po_folder_readonly",
+            raise_if_not_found=False,
+        )
+        if form_view:
+            lines = self.mapped("line_ids")
+            if len(lines) > 1:
+                action["views"] = [
+                    (False, "list"),
+                    (form_view.id, "form"),
+                ]
+            elif lines:
+                action["views"] = [(form_view.id, "form")]
+            action["view_mode"] = "list,form"
+        return action
+
     def request_validation(self):
         for request in self:
             lines_without_product = request.line_ids.filtered(lambda line: not line.product_id)

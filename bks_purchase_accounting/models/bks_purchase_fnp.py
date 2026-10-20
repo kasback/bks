@@ -18,6 +18,11 @@ class BksPurchaseFnp(models.Model):
     stock_move_id = fields.Many2one("stock.move", readonly=True)
     product_id = fields.Many2one("product.product", readonly=True)
     expense_account_id = fields.Many2one("account.account", readonly=True)
+    fnp_account_id = fields.Many2one(
+        "account.account",
+        string="Compte FNP",
+        readonly=True,
+    )
     quantity = fields.Float(
         string="Quantité (UdM commande)",
         digits="Product Unit",
@@ -127,6 +132,10 @@ class BksPurchaseFnp(models.Model):
         picking = picking.sudo()
         company = picking.company_id
         journal, fnp_account = sudo_self._get_fnp_accounts(company)
+        supplier = picking.purchase_id.partner_id or picking.partner_id
+        partner_fnp_account = supplier.with_company(company).property_account_fnp_id
+        if partner_fnp_account:
+            fnp_account = partner_fnp_account
 
         line_vals = []
         fnp_records = sudo_self.env["bks.purchase.fnp"]
@@ -157,6 +166,7 @@ class BksPurchaseFnp(models.Model):
                     "stock_move_id": move.id,
                     "product_id": po_line.product_id.id,
                     "expense_account_id": expense_account.id,
+                    "fnp_account_id": fnp_account.id,
                     "quantity": qty,
                     "amount": amount,
                 }
@@ -271,7 +281,9 @@ class BksPurchaseFnp(models.Model):
 
                 line_vals.extend(
                     fnp._prepare_reversal_move_line_vals(
-                        reverse_amount, fnp_account, inv_line.name or fnp.product_id.display_name
+                        reverse_amount,
+                        fnp.fnp_account_id or fnp_account,
+                        inv_line.name or fnp.product_id.display_name,
                     )
                 )
                 fnp.qty_reversed += reverse_qty
@@ -287,12 +299,14 @@ class BksPurchaseFnp(models.Model):
         if not line_vals:
             return self.env["account.move"]
 
+        fnp_names = ", ".join(touched.mapped("name")[:5])
         reversal = self.env["account.move"].create(
             {
                 "move_type": "entry",
                 "journal_id": journal.id,
                 "date": invoice.date or fields.Date.context_today(self),
-                "ref": _("Extourne FNP — %s") % (invoice.name or invoice.ref or invoice.id),
+                "ref": _("Extourne FNP %s — %s")
+                % (fnp_names, invoice.name or invoice.ref or invoice.id),
                 "partner_id": invoice.partner_id.id,
                 "company_id": company.id,
                 "line_ids": line_vals,
@@ -307,7 +321,7 @@ class BksPurchaseFnp(models.Model):
 
     def _prepare_reversal_move_line_vals(self, amount, fnp_account, label):
         self.ensure_one()
-        name = _("Extourne FNP %s") % label
+        name = _("Extourne FNP %s") % (self.name or label)
         analytic = self.purchase_line_id.analytic_distribution or False
         return [
             (

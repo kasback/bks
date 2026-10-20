@@ -5,6 +5,7 @@
         <field name="model">bks.genex.export.wizard</field>
         <field name="arch" type="xml">
             <form string="Export GENEX">
+                <field name="bks_payment_export" invisible="1" />
                 <group invisible="file_data">
                     <group>
                         <field name="date_from" />
@@ -13,23 +14,37 @@
                             name="journal_ids"
                             widget="many2many_tags"
                             options="{'no_create': True}"
+                            invisible="bks_payment_export"
                         />
                     </group>
                     <group>
-                        <field name="move_to_export_count" readonly="1" />
+                        <field
+                            name="move_to_export_count"
+                            readonly="1"
+                            invisible="bks_payment_export"
+                        />
+                        <field
+                            name="payment_to_export_count"
+                            readonly="1"
+                            invisible="not bks_payment_export"
+                        />
                         <button
                             name="action_reload_moves"
                             string="Actualiser la liste"
                             type="object"
                             class="btn-secondary"
+                            invisible="bks_payment_export"
                         />
                     </group>
                 </group>
-                <separator string="Écritures à exporter" invisible="file_data" />
+                <separator
+                    string="Écritures comptabilisées à exporter"
+                    invisible="file_data or bks_payment_export"
+                />
                 <field
                     name="move_ids"
                     nolabel="1"
-                    invisible="file_data"
+                    invisible="file_data or bks_payment_export"
                     options="{'no_create': True, 'no_open': True, 'link': False}"
                 >
                     <list create="false" delete="true" edit="false">
@@ -40,6 +55,25 @@
                         <field name="partner_id" optional="show" />
                         <field name="amount_total" sum="Total" />
                         <field name="company_id" optional="hide" groups="base.group_multi_company" />
+                    </list>
+                </field>
+                <separator
+                    string="Paiements à exporter (iMal règlements)"
+                    invisible="file_data or not bks_payment_export"
+                />
+                <field
+                    name="payment_ids"
+                    nolabel="1"
+                    invisible="file_data or not bks_payment_export"
+                    options="{'no_create': True}"
+                >
+                    <list create="false" delete="true" edit="false">
+                        <field name="date" />
+                        <field name="name" />
+                        <field name="payment_reference" string="Référence" optional="show" />
+                        <field name="partner_id" />
+                        <field name="amount" sum="Total" />
+                        <field name="journal_id" optional="show" />
                     </list>
                 </field>
                 <group invisible="not file_data">

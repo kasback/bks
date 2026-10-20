@@ -105,3 +105,52 @@ class AccountMove(models.Model):
                 "genex_export_user_id": self.env.user.id,
             }
         )
+
+    def _bks_genex_fnp_record(self):
+        """FNP liée à cette écriture (provision ou extourne), si module achats installé."""
+        self.ensure_one()
+        if "bks.purchase.fnp" not in self.env:
+            return self.env["bks.purchase.fnp"]
+        Fnp = self.env["bks.purchase.fnp"]
+        fnp = Fnp.search([("move_id", "=", self.id)], limit=1)
+        if not fnp:
+            fnp = Fnp.search([("reversal_move_id", "=", self.id)], limit=1)
+        return fnp
+
+    def _bks_genex_reception_reference(self):
+        """Référence réception pour FNP / extourne (colonne JV_REF GENEX)."""
+        self.ensure_one()
+        fnp = self._bks_genex_fnp_record()
+        if fnp and fnp.picking_id:
+            return (fnp.picking_id.name or "").strip()
+        return ""
+
+    def _bks_genex_incoming_picking(self):
+        """Réception stock liée à l'écriture (module stock_account)."""
+        self.ensure_one()
+        stock_moves = getattr(self, "stock_move_ids", None)
+        if not stock_moves:
+            return self.env["stock.picking"]
+        pickings = stock_moves.mapped("picking_id").filtered(
+            lambda p: p.picking_type_code == "incoming"
+        )
+        return pickings[:1]
+
+    def _bks_genex_reconciliation_reference(self):
+        """Référence de lettrage export GENEX (dernière colonne ODOO_GENEX)."""
+        self.ensure_one()
+        fnp = self._bks_genex_fnp_record()
+        if fnp and fnp.picking_id:
+            return (fnp.picking_id.name or "").strip()
+        if self.move_type in ("in_invoice", "in_refund", "in_receipt"):
+            return (self.name or self.ref or "").strip()
+        payment = self._get_genex_related_payment()
+        if payment and (
+            self.origin_payment_id
+            or payment.move_id == self
+        ):
+            return (payment.name or payment.payment_reference or "").strip()
+        picking = self._bks_genex_incoming_picking()
+        if picking:
+            return (picking.name or "").strip()
+        return ""
