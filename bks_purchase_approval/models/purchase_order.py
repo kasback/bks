@@ -129,3 +129,4 @@ class PurchaseOrder(models.Model):
                     break
             order.bks_operation_department_id = department
         self._bks_refresh_coordonnateur_reviewers()
+

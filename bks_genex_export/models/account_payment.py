@@ -125,12 +125,12 @@ class AccountPayment(models.Model):
 
     def action_open_genex_export_wizard(self):
         self._bks_check_genex_export_eligibility()
-        moves = self.mapped("move_id")
+        dates = self.mapped("date")
         wizard = self.env["bks.genex.export.wizard"].create(
             {
-                "date_from": min(moves.mapped("date")),
-                "date_to": max(moves.mapped("date")),
-                "move_ids": [(6, 0, moves.ids)],
+                "date_from": min(dates),
+                "date_to": max(dates),
+                "payment_ids": [(6, 0, self.ids)],
                 "bks_payment_export": True,
             }
         )

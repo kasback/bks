@@ -118,6 +118,44 @@ class AccountPayment(models.Model):
     def _bks_requires_tier_before_validate(self):
         return self.filtered(lambda pay: pay._bks_tier_definition_applies())
 
+    @staticmethod
+    def _bks_is_invalid_payment_name(name):
+        return not name or name in ("/",)
+
+    def _bks_sequence_payment_name(self):
+        self.ensure_one()
+        return (
+            self.env["ir.sequence"]
+            .with_company(self.company_id)
+            .next_by_code("account.payment", sequence_date=self.date)
+        )
+
+    def _bks_resolve_tier_payment_name(self):
+        self.ensure_one()
+        move = self.move_id
+        if move and move.state == "posted":
+            move_name = move.name
+            if not self._bks_is_invalid_payment_name(move_name):
+                return move_name
+        origin_name = self._origin.name if self.id else False
+        if not self._bks_is_invalid_payment_name(origin_name):
+            return origin_name
+        return self._bks_sequence_payment_name()
+
+    @api.depends("move_id.name", "move_id.state", "state", "date", "company_id")
+    def _compute_name(self):
+        tier = self.filtered(lambda p: p._bks_tier_definition_applies())
+        super(AccountPayment, self - tier)._compute_name()
+        for payment in tier.filtered(lambda p: p.state in ("draft", "in_process", "paid")):
+            payment.name = payment._bks_resolve_tier_payment_name()
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("memo") and not vals.get("payment_reference"):
+                vals["payment_reference"] = vals["memo"]
+        return super().create(vals_list)
+
     def _tier_validation_check_state_on_write(self, vals):
         """Approbation tier obligatoire avant Valider (payé / comptabilisation)."""
         new_state = vals.get(self._state_field)
@@ -251,7 +289,8 @@ class AccountPayment(models.Model):
         if to_confirm:
             to_confirm._bks_prepare_draft_accounting()
             to_confirm._write({"state": "in_process"})
-            to_confirm.invalidate_recordset(["state"])
+            to_confirm.modified(["state", "move_id"])
+            to_confirm.flush_recordset(["name"])
         return True
 
     def _action_open_validate_wizard(self):

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_move_form_bks_withholding_taxes" model="ir.ui.view">
+        <field name="name">account.move.form.bks.withholding.taxes</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="rmg_l10n_ma_withholding.view_move_form" />
+        <field name="arch" type="xml">
+            <xpath
+                expr="//field[@name='invoice_line_ids']/list/field[@name='tax_ids']"
+                position="attributes"
+            >
+                <attribute name="string">Taxes (TVA + RAS applicable)</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -92,12 +92,12 @@
                                         <td class="text-right">
                                             <span t-field="line_id.product_qty" />
                                         </td>
-                                        <t>
-                                            <td
-                                                class="text-center"
-                                                groups="uom.group_uom"
-                                            />
-                                        </t>
+                                        <td
+                                            class="text-center"
+                                            groups="uom.group_uom"
+                                        >
+                                            <span t-field="line_id.product_uom_id" />
+                                        </td>
                                         <td>
                                             <span t-field="line_id.estimated_cost" />
                                         </td>

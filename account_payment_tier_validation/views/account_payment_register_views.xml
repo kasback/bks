@@ -1,14 +1,33 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record id="view_account_payment_register_form_bks_ma_ui" model="ir.ui.view">
+        <field name="name">account.payment.register.form.bks.ma.ui</field>
+        <field name="model">account.payment.register</field>
+        <field
+            name="inherit_id"
+            ref="rmg_l10n_ma_account.view_account_payment_register_dgi_channel"
+        />
+        <field name="priority">30</field>
+        <field name="arch" type="xml">
+            <field name="payment_method_line_id" position="attributes">
+                <attribute name="invisible">1</attribute>
+                <attribute name="required">0</attribute>
+            </field>
+            <field name="l10n_ma_reports_payment_method" position="attributes">
+                <attribute name="invisible">country_code != 'MA'</attribute>
+                <attribute name="required">country_code == 'MA'</attribute>
+                <attribute name="string">Mode de paiement</attribute>
+            </field>
+        </field>
+    </record>
+
     <record id="view_account_payment_register_form_bks" model="ir.ui.view">
         <field name="name">account.payment.register.form.bks.tier</field>
         <field name="model">account.payment.register</field>
         <field name="inherit_id" ref="account.view_account_payment_register_form" />
         <field name="arch" type="xml">
             <field name="partner_bank_id" position="attributes">
-                <attribute
-                    name="required"
-                >require_partner_bank_account or (payment_type == 'outbound' and journal_id.type == 'bank')</attribute>
+                <attribute name="required">require_partner_bank_account</attribute>
                 <attribute
                     name="options"
                 >{'no_create': True, 'no_create_edit': True, 'no_open': True}</attribute>

@@ -10,11 +10,12 @@ class AccountPaymentRegister(models.TransientModel):
 
     def _bks_check_outbound_bank_account(self):
         for wizard in self:
-            if wizard.payment_type != "outbound":
-                continue
-            if wizard.journal_id.type != "bank":
-                continue
             if wizard.can_group_payments and wizard.group_payment:
+                continue
+            if (
+                not wizard.require_partner_bank_account
+                and not wizard._bks_ma_transfer_requires_partner_bank()
+            ):
                 continue
             if not wizard.partner_bank_id:
                 raise ValidationError(
@@ -25,6 +26,7 @@ class AccountPaymentRegister(models.TransientModel):
                 )
 
     def action_create_payments(self):
+        self._bks_sync_payment_method_line_from_dgi()
         self._bks_check_outbound_bank_account()
         return super().action_create_payments()
 

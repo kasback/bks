@@ -7,11 +7,36 @@
         <field name="arch" type="xml">
             <field name="partner_id" widget="res_partner_many2one" position="before">
                 <field name="bks_vendor_locked_from_po" invisible="1" />
+                <field name="bks_operation_department_id" invisible="1" />
             </field>
+            <xpath
+                expr="//group[@id='header_right_group']/field[@name='date']"
+                position="after"
+            >
+                <field
+                    name="bks_invoice_reception_date"
+                    invisible="move_type != 'in_invoice'"
+                    required="move_type == 'in_invoice' and state == 'draft'"
+                    readonly="state != 'draft'"
+                />
+            </xpath>
             <field name="partner_id" widget="res_partner_many2one" position="attributes">
                 <attribute
                     name="readonly"
                 >state != 'draft' or bks_vendor_locked_from_po</attribute>
+                <attribute name="domain">[
+                    '&amp;',
+                        '|', ('company_id', '=', False), ('company_id', 'parent_of', company_id),
+                        '|', ('supplier_rank', '&gt;', 0), ('customer_rank', '&gt;', 0)
+                ]</attribute>
+                <attribute name="context">{
+                    'res_partner_search_mode': (move_type in ('in_invoice', 'in_refund', 'in_receipt') and 'supplier') or (move_type in ('out_invoice', 'out_refund', 'out_receipt') and 'customer') or False,
+                    'search_default_supplier': move_type in ('in_invoice', 'in_refund', 'in_receipt') and 1 or 0,
+                    'search_default_customer': move_type in ('out_invoice', 'out_refund', 'out_receipt') and 1 or 0,
+                    'show_address': 1,
+                    'default_is_company': True,
+                    'show_vat': True
+                }</attribute>
             </field>
         </field>
     </record>

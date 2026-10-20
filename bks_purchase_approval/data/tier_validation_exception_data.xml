@@ -25,7 +25,10 @@
         <field name="model_id" ref="account.model_account_move" />
         <field
             name="field_ids"
-            eval="[(4, ref('bks_purchase_approval.field_account_move__bks_operation_department_id'))]"
+            eval="[
+                (4, ref('bks_purchase_approval.field_account_move__bks_operation_department_id')),
+                (4, ref('bks_purchase_approval.field_account_move__bks_operation_department_manual_id')),
+            ]"
         />
         <field name="allowed_to_write_under_validation" eval="True" />
         <field name="allowed_to_write_after_validation" eval="True" />
