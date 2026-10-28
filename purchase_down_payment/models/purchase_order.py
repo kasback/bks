@@ -234,7 +234,8 @@ class PurchaseOrder(models.Model):
 
             # Store down payment lines separately
             if line.is_downpayment:
-                down_payment_line_ids.append(line.id)
+                if not line._is_downpayment_deducted():
+                    down_payment_line_ids.append(line.id)
                 continue
 
             # Skip only when NOT final invoice

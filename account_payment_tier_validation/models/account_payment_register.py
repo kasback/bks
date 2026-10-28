@@ -1,12 +1,51 @@
 # Copyright 2025 Spearhead - Ricardo Jara
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import _, models
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 
 class AccountPaymentRegister(models.TransientModel):
     _inherit = "account.payment.register"
+
+    bks_can_edit_payment_amount = fields.Boolean(
+        compute="_compute_bks_can_edit_payment_amount",
+    )
+
+    @api.depends_context("uid")
+    def _compute_bks_can_edit_payment_amount(self):
+        can = self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_amount"
+        )
+        for wizard in self:
+            wizard.bks_can_edit_payment_amount = can
+
+    def _bks_check_register_amount_edit(self):
+        if self.env.su or self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_amount"
+        ):
+            return
+        for wizard in self:
+            if not wizard.currency_id or not wizard.journal_id:
+                continue
+            if wizard.custom_user_amount:
+                raise UserError(
+                    _("Vous n'avez pas le droit de modifier le montant du paiement.")
+                )
+            totals = wizard._get_total_amounts_to_pay(wizard.batches)
+            allowed = (
+                totals["amount_by_default"],
+                totals["amount_for_difference"],
+                totals["full_amount"],
+                totals["full_amount_for_difference"],
+            )
+            if all(
+                not wizard.currency_id.is_zero(wizard.amount - value)
+                for value in allowed
+            ):
+                raise UserError(
+                    _("Vous n'avez pas le droit de modifier le montant du paiement.")
+                )
 
     def _bks_check_outbound_bank_account(self):
         for wizard in self:
@@ -26,7 +65,9 @@ class AccountPaymentRegister(models.TransientModel):
                 )
 
     def action_create_payments(self):
+        self.line_ids.move_id._bks_raise_if_open_payment()
         self._bks_sync_payment_method_line_from_dgi()
+        self._bks_check_register_amount_edit()
         self._bks_check_outbound_bank_account()
         return super().action_create_payments()
 

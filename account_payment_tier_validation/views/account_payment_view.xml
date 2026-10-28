@@ -112,13 +112,21 @@
             <xpath expr="//div[hasclass('oe_title')]/h1[1]" position="attributes">
                 <attribute
                     name="invisible"
-                >bks_tier_governed or state != 'draft'</attribute>
+                >state != 'draft' or (name and name != '/')</attribute>
             </xpath>
             <xpath expr="//div[hasclass('oe_title')]/h1[2]" position="attributes">
-                <attribute name="invisible">not bks_tier_governed and state == 'draft'</attribute>
+                <attribute
+                    name="invisible"
+                >state == 'draft' and (not name or name == '/')</attribute>
             </xpath>
             <field name="memo" position="attributes">
                 <attribute name="readonly">state not in ('draft', 'in_process')</attribute>
+            </field>
+            <field name="bks_show_cancel_button" position="after">
+                <field name="bks_can_edit_payment_amount" invisible="1" />
+            </field>
+            <field name="amount" position="attributes">
+                <attribute name="readonly">not bks_can_edit_payment_amount</attribute>
             </field>
         </field>
     </record>

@@ -29,6 +29,17 @@ class PurchaseOrderLine(models.Model):
              "from a purchase order."
     )
 
+    def _is_downpayment_deducted(self):
+        """True when a non-cancelled bill already carries the negative deduction."""
+        self.ensure_one()
+        if not self.is_downpayment:
+            return False
+        return bool(self.invoice_lines.filtered(
+            lambda line: line.is_downpayment
+            and line.quantity < 0
+            and line.move_id.state != "cancel"
+        ))
+
     def _prepare_invoice_line(self, **optional_values):
         """
         Prepare invoice line values

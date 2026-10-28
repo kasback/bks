@@ -12,3 +12,7 @@ class ResConfigSettings(models.TransientModel):
         related="company_id.bks_fnp_journal_id",
         readonly=False,
     )
+    bks_guarantee_account_id = fields.Many2one(
+        related="company_id.bks_guarantee_account_id",
+        readonly=False,
+    )

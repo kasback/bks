@@ -1,6 +1,6 @@
 {
     "name": "BKS — Retenues à la source (achats)",
-    "version": "19.0.1.0.1",
+    "version": "19.0.1.0.2",
     "category": "Accounting/Localizations",
     "summary": "TVA seule sur les articles ; RAS proposée par le moteur RMG sur les factures",
     "depends": [

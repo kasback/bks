@@ -21,6 +21,9 @@ class AccountPayment(models.Model):
         compute="_compute_bks_payment_buttons"
     )
     bks_show_cancel_button = fields.Boolean(compute="_compute_bks_payment_buttons")
+    bks_can_edit_payment_amount = fields.Boolean(
+        compute="_compute_bks_can_edit_payment_amount",
+    )
 
     @api.model
     def _get_under_validation_exceptions(self):
@@ -87,6 +90,62 @@ class AccountPayment(models.Model):
                 pay.bks_show_cancel_button = pay.state == "draft" or (
                     pay.state == "in_process" and pay.is_sent
                 )
+
+    @api.depends_context("uid")
+    @api.depends("state", "move_id.state")
+    def _compute_bks_can_edit_payment_amount(self):
+        can = self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_amount"
+        )
+        for pay in self:
+            pay.bks_can_edit_payment_amount = can and not pay._bks_amount_is_locked()
+
+    def _bks_amount_is_locked(self):
+        self.ensure_one()
+        if self.state in ("paid", "canceled", "rejected"):
+            return True
+        return bool(self.move_id) and self.move_id.state == "posted"
+
+    def _bks_check_amount_edit(self, vals):
+        if "amount" not in vals or self.env.su:
+            return
+        new_amount = vals["amount"]
+        changing = self.filtered(
+            lambda pay: not pay.currency_id.is_zero(pay.amount - new_amount)
+        )
+        if not changing:
+            return
+        if not self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_amount"
+        ):
+            raise UserError(
+                _("Vous n'avez pas le droit de modifier le montant du paiement.")
+            )
+        locked = changing.filtered(lambda pay: pay._bks_amount_is_locked())
+        if locked:
+            raise UserError(
+                _(
+                    "Le montant ne peut plus être modifié sur un paiement "
+                    "payé, annulé, rejeté ou déjà comptabilisé."
+                )
+            )
+
+    def _check_allow_write_under_validation(self, vals):
+        if (
+            "amount" in vals
+            and self.env.user.has_group(
+                "account_payment_tier_validation.group_bks_payment_amount"
+            )
+        ):
+            other = {key: value for key, value in vals.items() if key != "amount"}
+            if not other:
+                return True
+            return super()._check_allow_write_under_validation(other)
+        return super()._check_allow_write_under_validation(vals)
+
+    def write(self, vals):
+        self._bks_check_amount_edit(vals)
+        return super().write(vals)
 
     def _check_tier_state_transition(self, vals):
         if vals.get(self._state_field) != "paid":
