@@ -16,3 +16,10 @@ class ResCompany(models.Model):
         domain="[('company_id', '=', id), ('type', '=', 'general')]",
         help="Journal des écritures de provision et d'extourne FNP.",
     )
+    bks_guarantee_account_id = fields.Many2one(
+        "account.account",
+        string="Compte retenue de garantie",
+        domain="[('company_ids', 'in', id), ('reconcile', '=', True)]",
+        help="Compte unique lettrable crédité du TTC de la retenue de garantie. "
+        "Le fournisseur reste porté sur la ligne pour le lettrage.",
+    )

@@ -26,6 +26,14 @@
         <field name="model">account.payment.register</field>
         <field name="inherit_id" ref="account.view_account_payment_register_form" />
         <field name="arch" type="xml">
+            <field name="amount" position="before">
+                <field name="bks_can_edit_payment_amount" invisible="1" />
+            </field>
+            <field name="amount" position="attributes">
+                <attribute
+                    name="readonly"
+                >not can_edit_wizard or (can_group_payments and not group_payment) or not bks_can_edit_payment_amount</attribute>
+            </field>
             <field name="partner_bank_id" position="attributes">
                 <attribute name="required">require_partner_bank_account</attribute>
                 <attribute

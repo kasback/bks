@@ -26,4 +26,22 @@
             </xpath>
         </field>
     </record>
+
+    <record id="res_config_settings_view_form_bks_guarantee" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.bks.guarantee</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="account.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//block[@id='account_vendor_bills']" position="inside">
+                <setting
+                    id="bks_guarantee_account"
+                    string="Retenue de garantie"
+                    company_dependent="1"
+                    help="Compte unique lettrable crédité du TTC de la retenue. Le fournisseur reste sur la ligne pour le lettrage."
+                >
+                    <field name="bks_guarantee_account_id"/>
+                </setting>
+            </xpath>
+        </field>
+    </record>
 </odoo>

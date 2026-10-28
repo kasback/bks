@@ -115,6 +115,40 @@ class TestPurchaseDownPayment(TransactionCase):
         self.assertTrue(down_payment_invoice_line, "The down payment should be deducted in the regular invoice.")
         self.assertEqual(down_payment_invoice_line.quantity, -1.0, "The deducted down payment line should have a negative quantity.")
 
+    def _wizard(self, **vals):
+        return self.env["purchase.order.advance.payment"].with_context(
+            active_ids=self.purchase_order.ids,
+            active_model="purchase.order",
+            active_id=self.purchase_order.id,
+        ).create(vals)
+
+    def test_hide_deduct_checkbox_after_deduction(self):
+        """The checkbox stays only while a down payment is still open."""
+        self._wizard(
+            advance_payment_method="fixed",
+            fixed_amount=300.0,
+        ).action_create_advance_bill()
+        self.purchase_order.order_line[0].qty_received = 10.0
+
+        open_wizard = self._wizard(advance_payment_method="delivered")
+        self.assertTrue(open_wizard.has_down_payments)
+
+        self._wizard(
+            advance_payment_method="delivered",
+            deduct_down_payments=True,
+        ).action_create_advance_bill()
+
+        closed_wizard = self._wizard(advance_payment_method="delivered")
+        self.assertFalse(closed_wizard.has_down_payments)
+
+        self.purchase_order._deduct_payment(final=True)
+        deducted_lines = self.purchase_order.invoice_ids.invoice_line_ids.filtered(
+            lambda line: line.is_downpayment
+            and line.quantity < 0
+            and line.move_id.state != "cancel"
+        )
+        self.assertEqual(len(deducted_lines), 1)
+
     def test_negative_down_payment_validation(self):
         """Test that negative down payment values raise UserError"""
         wizard = self.env['purchase.order.advance.payment'].with_context(active_ids=self.purchase_order.ids, active_model='purchase.order', active_id=self.purchase_order.id).create({

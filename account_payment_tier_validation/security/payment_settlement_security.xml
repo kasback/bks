@@ -37,4 +37,19 @@
             name="comment"
         >Unique niveau d'approbation tier sur les paiements avant passage à « Payé ».</field>
     </record>
+
+    <record model="res.groups.privilege" id="res_groups_privilege_bks_payment_amount">
+        <field name="name">Montant du paiement</field>
+        <field name="category_id" ref="module_category_bks_payment_settlement" />
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="group_bks_payment_amount" model="res.groups">
+        <field name="name">Modifier le montant</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_bks_payment_amount" />
+        <field
+            name="comment"
+        >Peut modifier le montant d'un paiement en brouillon ou en cours. Un paiement payé, annulé ou rejeté reste figé.</field>
+    </record>
 </odoo>

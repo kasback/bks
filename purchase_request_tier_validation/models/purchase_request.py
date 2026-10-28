@@ -44,6 +44,9 @@ class PurchaseRequest(models.Model):
     bks_can_create_rfq = fields.Boolean(
         compute="_compute_bks_can_create_rfq",
     )
+    bks_can_edit_requested_by = fields.Boolean(
+        compute="_compute_bks_can_edit_requested_by",
+    )
 
     @api.depends_context("uid")
     def _compute_bks_can_create_rfq(self):
@@ -52,6 +55,26 @@ class PurchaseRequest(models.Model):
         ) or self.env.user.has_group("base.group_system")
         for rec in self:
             rec.bks_can_create_rfq = can
+
+    @api.depends_context("uid")
+    def _compute_bks_can_edit_requested_by(self):
+        can = self.env.user.has_group(
+            "purchase_request_tier_validation.group_acheteur"
+        )
+        for rec in self:
+            rec.bks_can_edit_requested_by = can
+
+    def _bks_check_requested_by_edit(self, requested_by_id):
+        if self.env.su or self.env.user.has_group(
+            "purchase_request_tier_validation.group_acheteur"
+        ):
+            return
+        if requested_by_id and requested_by_id != self.env.uid:
+            raise UserError(
+                self.env._(
+                    "Seul un acheteur peut modifier le demandeur (ordonnateur)."
+                )
+            )
 
     @api.depends("requested_by")
     @api.depends_context("uid")
@@ -123,6 +146,7 @@ class PurchaseRequest(models.Model):
         new_labels = {self.env._("New"), "New", "Nouveau"}
         for vals in vals_list:
             vals = {k: v for k, v in vals.items() if k != "assigned_to"}
+            self._bks_check_requested_by_edit(vals.get("requested_by"))
             if not vals.get("name") or vals.get("name") in new_labels:
                 vals["name"] = self._get_default_name()
             cleaned.append(vals)
@@ -133,6 +157,17 @@ class PurchaseRequest(models.Model):
             vals = {k: v for k, v in vals.items() if k != "assigned_to"}
         if "name" in vals:
             vals = {k: v for k, v in vals.items() if k != "name"}
+        if "requested_by" in vals and not self.env.su:
+            if not self.env.user.has_group(
+                "purchase_request_tier_validation.group_acheteur"
+            ):
+                new_id = vals["requested_by"]
+                if any(rec.requested_by.id != new_id for rec in self):
+                    raise UserError(
+                        self.env._(
+                            "Seul un acheteur peut modifier le demandeur (ordonnateur)."
+                        )
+                    )
         return super().write(vals)
 
     def request_validation(self):

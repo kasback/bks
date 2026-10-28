@@ -49,16 +49,18 @@ class PurchaseOrderAdvancePayment(models.TransientModel):
 
     @api.model
     def _default_has_down_payment(self):
-        """Function to check the Purchase order has down payment or not"""
-        if self._context.get(
-                'active_model') == 'purchase.order' and self._context.get(
-            'active_id', False):
-            purchase_order = self.env['purchase.order'].browse(
-                self._context.get('active_id'))
-            return purchase_order.order_line.filtered(
-                lambda purchase_order_line: purchase_order_line.is_downpayment
-            )
-        return False
+        """True while at least one down payment line is not yet deducted."""
+        if self._context.get("active_model") != "purchase.order":
+            return False
+        order_ids = self._context.get("active_ids") or []
+        if not order_ids and self._context.get("active_id"):
+            order_ids = [self._context["active_id"]]
+        if not order_ids:
+            return False
+        orders = self.env["purchase.order"].browse(order_ids)
+        return bool(orders.order_line.filtered(
+            lambda line: line.is_downpayment and not line._is_downpayment_deducted()
+        ))
 
     advance_payment_method = fields.Selection([
         ('delivered', 'Regular bill'),
