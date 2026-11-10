@@ -77,8 +77,17 @@
                     </list>
                 </field>
                 <group invisible="not file_data">
-                    <field name="file_name" readonly="1" />
-                    <field name="file_data" filename="file_name" readonly="1" />
+                    <group string="Fichier virements (VDM)">
+                        <field name="file_name" readonly="1" />
+                        <field name="file_data" filename="file_name" readonly="1" />
+                    </group>
+                    <group
+                        string="Lettre virements en masse (modèle OV)"
+                        invisible="not ov_file_data"
+                    >
+                        <field name="ov_file_name" readonly="1" />
+                        <field name="ov_file_data" filename="ov_file_name" readonly="1" />
+                    </group>
                 </group>
                 <footer>
                     <button

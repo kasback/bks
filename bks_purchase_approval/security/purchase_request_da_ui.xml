@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="group_bks_da_extra_fields" model="res.groups">
+        <field name="name">Afficher champs extra DA</field>
+        <field name="sequence">7</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Sur les demandes d'achat : affiche le type d'opération, le fil de discussion (envoyer un message, activités) et la colonne activités en liste.</field>
+    </record>
+</odoo>

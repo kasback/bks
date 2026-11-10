@@ -26,17 +26,13 @@ class AccountPayment(models.Model):
     )
 
     @api.model
-    def _get_under_validation_exceptions(self):
-        return super()._get_under_validation_exceptions() + [
+    def _get_validation_exceptions(self, extra_domain=None, add_base_exceptions=True):
+        res = super()._get_validation_exceptions(extra_domain, add_base_exceptions)
+        return res + [
             "bks_register_reconcile_line_ids",
             "bks_register_forced_rate",
-        ]
-
-    @api.model
-    def _get_after_validation_exceptions(self):
-        return super()._get_after_validation_exceptions() + [
-            "bks_register_reconcile_line_ids",
-            "bks_register_forced_rate",
+            "date",
+            "memo",
         ]
 
     bks_register_reconcile_line_ids = fields.Many2many(
@@ -130,14 +126,38 @@ class AccountPayment(models.Model):
                 )
             )
 
-    def _check_allow_write_under_validation(self, vals):
-        if (
-            "amount" in vals
-            and self.env.user.has_group(
-                "account_payment_tier_validation.group_bks_payment_amount"
+    def _bks_date_is_locked(self):
+        self.ensure_one()
+        if self.state in ("paid", "canceled", "rejected"):
+            return True
+        return bool(self.move_id) and self.move_id.state == "posted"
+
+    def _bks_check_date_edit(self, vals):
+        if "date" not in vals or self.env.su:
+            return
+        new_date = fields.Date.to_date(vals["date"])
+        changing = self.filtered(lambda pay: pay.date != new_date)
+        if not changing:
+            return
+        locked = changing.filtered(lambda pay: pay._bks_date_is_locked())
+        if locked:
+            raise UserError(
+                _(
+                    "La date de paiement n'est plus modifiable une fois le "
+                    "paiement payé, annulé, rejeté ou déjà comptabilisé."
+                )
             )
+
+    def _check_allow_write_under_validation(self, vals):
+        extra = set()
+        if "date" in vals:
+            extra.add("date")
+        if "amount" in vals and self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_amount"
         ):
-            other = {key: value for key, value in vals.items() if key != "amount"}
+            extra.add("amount")
+        if extra:
+            other = {key: value for key, value in vals.items() if key not in extra}
             if not other:
                 return True
             return super()._check_allow_write_under_validation(other)
@@ -145,7 +165,16 @@ class AccountPayment(models.Model):
 
     def write(self, vals):
         self._bks_check_amount_edit(vals)
+        self._bks_check_date_edit(vals)
         return super().write(vals)
+
+    def _synchronize_to_moves(self, changed_fields):
+        # L'écriture reste en brouillon en cours de traitement : la date
+        # (et le montant) doivent se reporter sans bloquer le circuit pièce.
+        return super(
+            AccountPayment,
+            self.with_context(skip_validation_check=True),
+        )._synchronize_to_moves(changed_fields)
 
     def _check_tier_state_transition(self, vals):
         if vals.get(self._state_field) != "paid":
@@ -425,7 +454,7 @@ class AccountPayment(models.Model):
             return self.env._("Vendor Payment")
         if self.payment_type == "inbound":
             return self.env._("Customer Payment")
-        return super()._get_to_validate_message_name()
+        return self.env._("Payments")
 
     def _allow_to_remove_reviews(self, values):
         if values.get(self._state_field) == "rejected":

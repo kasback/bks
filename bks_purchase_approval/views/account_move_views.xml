@@ -7,8 +7,21 @@
         <field name="arch" type="xml">
             <field name="partner_id" widget="res_partner_many2one" position="before">
                 <field name="bks_vendor_locked_from_po" invisible="1" />
-                <field name="bks_operation_department_id" invisible="1" />
             </field>
+            <xpath expr="//group[@id='header_right_group']" position="inside">
+                <field
+                    name="bks_operation_department_id"
+                    string="Unité opérationnelle"
+                    invisible="move_type not in ('in_invoice', 'in_refund', 'in_receipt') or purchase_order_count > 0"
+                    readonly="purchase_order_count > 0 or state != 'draft'"
+                />
+            </xpath>
+            <xpath
+                expr="//group[@id='header_right_group']/label[@for='invoice_date'][contains(@invisible, 'in_invoice')]"
+                position="attributes"
+            >
+                <attribute name="string">Date de facture</attribute>
+            </xpath>
             <xpath
                 expr="//group[@id='header_right_group']/field[@name='date']"
                 position="after"
@@ -48,7 +61,26 @@
         <field name="arch" type="xml">
             <field name="show_reset_to_draft_button" position="after">
                 <field name="bks_user_can_finance_move_actions" invisible="1" />
+                <field name="bks_user_can_post_entry" invisible="1" />
+                <field name="bks_user_can_reverse_entry" invisible="1" />
+                <field name="bks_user_can_draft_entry" invisible="1" />
             </field>
+            <xpath
+                expr="//header/button[@name='action_post'][contains(@invisible, &quot;move_type != 'entry'&quot;)]"
+                position="attributes"
+            >
+                <attribute
+                    name="invisible"
+                >hide_post_button or move_type != 'entry' or not bks_user_can_post_entry</attribute>
+            </xpath>
+            <xpath
+                expr="//button[@name='%(account.action_view_account_move_reversal)d']"
+                position="attributes"
+            >
+                <attribute
+                    name="invisible"
+                >move_type != 'entry' or state != 'posted' or payment_state == 'reversed' or not bks_user_can_reverse_entry</attribute>
+            </xpath>
             <button name="action_reverse" position="attributes">
                 <attribute name="groups" />
                 <attribute
@@ -59,7 +91,7 @@
                 <attribute name="groups" />
                 <attribute
                     name="invisible"
-                >not show_reset_to_draft_button or not bks_user_can_finance_move_actions</attribute>
+                >not show_reset_to_draft_button or (move_type == 'entry' and not bks_user_can_draft_entry) or (move_type != 'entry' and not bks_user_can_finance_move_actions)</attribute>
             </button>
         </field>
     </record>

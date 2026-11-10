@@ -200,7 +200,7 @@ class BksPurchaseFnp(models.Model):
                 "line_ids": line_vals,
             }
         )
-        move.action_post()
+        move.with_context(bks_skip_entry_button_acl=True).action_post()
         fnp_records.write({"move_id": move.id})
         picking.message_post(
             body=_("Provision FNP enregistrée : %s") % move._get_html_link(),
@@ -312,7 +312,7 @@ class BksPurchaseFnp(models.Model):
                 "line_ids": line_vals,
             }
         )
-        reversal.action_post()
+        reversal.with_context(bks_skip_entry_button_acl=True).action_post()
         touched.write({"reversal_move_id": reversal.id})
         invoice.message_post(
             body=_("Extourne FNP : %s") % reversal._get_html_link(),

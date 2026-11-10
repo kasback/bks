@@ -30,6 +30,37 @@
                         </div>
                     </div>
                 </setting>
+                <setting
+                    string="Virements de masse (VDM / OV)"
+                    help="Paramètres du fichier VDM Adria et de la lettre OV bancaire."
+                >
+                    <div class="content-group">
+                        <div class="row mt16">
+                            <label for="genex_vdm_bank_code" class="col-lg-4" />
+                            <field name="genex_vdm_bank_code" class="col-lg-2" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_vdm_agency_code" class="col-lg-4" />
+                            <field name="genex_vdm_agency_code" class="col-lg-2" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_vdm_remitter_rib" class="col-lg-4" />
+                            <field name="genex_vdm_remitter_rib" class="col-lg-6" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_vdm_rib_key" class="col-lg-4" />
+                            <field name="genex_vdm_rib_key" class="col-lg-2" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_vdm_convention_ref" class="col-lg-4" />
+                            <field name="genex_vdm_convention_ref" class="col-lg-4" />
+                        </div>
+                        <div class="row">
+                            <label for="genex_ov_debit_rib_display" class="col-lg-4" />
+                            <field name="genex_ov_debit_rib_display" class="col-lg-6" />
+                        </div>
+                    </div>
+                </setting>
                 </block>
             </xpath>
         </field>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="group_bks_bc_extra_fields" model="res.groups">
+        <field name="name">Afficher champs extra BC</field>
+        <field name="sequence">8</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Sur les bons de commande : affiche le champ Livrer à (type d'opération / entrepôt) et l'adresse de livraison dropship.</field>
+    </record>
+</odoo>

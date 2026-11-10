@@ -15,6 +15,7 @@
                 <attribute
                     name="domain"
                 >[('partner_id', '=', supplier_id), ('state', 'in', ('draft', 'sent'))]</attribute>
+                <attribute name="string">Bons de commandes</attribute>
             </field>
         </field>
     </record>

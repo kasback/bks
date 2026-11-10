@@ -7,6 +7,7 @@ from odoo.exceptions import UserError
 class PurchaseRequest(models.Model):
     _inherit = "purchase.request"
 
+    purchase_count = fields.Integer(string="Bons de commandes")
     bks_operation_department_id = fields.Many2one(
         comodel_name="hr.department",
         string="Unité opérationnelle",

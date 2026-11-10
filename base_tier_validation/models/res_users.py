@@ -66,9 +66,10 @@ class Users(models.Model):
                         lambda x: x[x._state_field] != x._cancel_state
                     )
                 if records:
+                    model_rec = self.env["ir.model"]._get(model)
                     user_reviews[model] = {
                         "id": records[0].id,
-                        "name": Model._description,
+                        "name": model_rec.name or Model._description,
                         "model": model,
                         "active_field": "active" in Model._fields,
                         "icon": modules.module.get_module_icon(Model._original_module),

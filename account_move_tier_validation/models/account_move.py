@@ -53,16 +53,17 @@ class AccountMove(models.Model):
         return res + am_exceptions
 
     def _get_to_validate_message_name(self):
-        name = super()._get_to_validate_message_name()
         if self.move_type == "in_invoice":
-            name = self.env._("Bill")
-        elif self.move_type == "in_refund":
-            name = self.env._("Refund")
-        elif self.move_type == "out_invoice":
-            name = self.env._("Invoice")
-        elif self.move_type == "out_refund":
-            name = self.env._("Credit Note")
-        return name
+            return self.env._("Bill")
+        if self.move_type == "in_refund":
+            return self.env._("Refund")
+        if self.move_type == "out_invoice":
+            return self.env._("Invoice")
+        if self.move_type == "out_refund":
+            return self.env._("Credit Note")
+        if self.move_type == "entry":
+            return self.env._("Journal Entry")
+        return super()._get_to_validate_message_name()
 
     def action_post(self):
         for move in self:

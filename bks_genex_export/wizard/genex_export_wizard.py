@@ -5,6 +5,7 @@ from datetime import datetime
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+from odoo.tools.misc import file_path
 
 try:
     import openpyxl
@@ -48,14 +49,8 @@ GENEX_JVTICKET_HEADERS = (
     "Référence de lettrage",
 )
 
-IMAL_REGLEMENT_HEADERS = (
-    "Code banque",
-    "Montant",
-    "Beneficiaire",
-    "RIB",
-    "Mode de règlement",
-    "Référence règlement Odoo",
-)
+_VDM_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_VDM.xlsx"
+_OV_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_OV.doc"
 
 
 class BksGenexExportWizard(models.TransientModel):
@@ -88,8 +83,10 @@ class BksGenexExportWizard(models.TransientModel):
         string="Nombre de paiements",
         compute="_compute_move_to_export_count",
     )
-    file_data = fields.Binary(string="Fichier", readonly=True)
-    file_name = fields.Char(string="Nom du fichier", readonly=True)
+    file_data = fields.Binary(string="Fichier VDM (Excel)", readonly=True)
+    file_name = fields.Char(string="Nom du fichier VDM", readonly=True)
+    ov_file_data = fields.Binary(string="Fichier OV (Word)", readonly=True)
+    ov_file_name = fields.Char(string="Nom du fichier OV", readonly=True)
     bks_payment_export = fields.Boolean(
         string="Export depuis paiements",
         default=lambda self: bool(self.env.context.get("bks_genex_payment_export")),
@@ -102,6 +99,14 @@ class BksGenexExportWizard(models.TransientModel):
         active_ids = self.env.context.get("active_ids") or []
         if active_model == "account.payment" and active_ids:
             payments = self.env["account.payment"].browse(active_ids)
+            payments = payments._bks_filter_genex_export_payments()
+            if not payments:
+                raise UserError(
+                    _(
+                        "Aucun paiement en mode virement bancaire sélectionné "
+                        "pour l'export iMal."
+                    )
+                )
             payments._bks_check_genex_export_eligibility()
             res["payment_ids"] = [(6, 0, payments.ids)]
             res["bks_payment_export"] = True
@@ -229,7 +234,7 @@ class BksGenexExportWizard(models.TransientModel):
 
     def _get_payments(self, raise_if_empty=True):
         self.ensure_one()
-        payments = self.payment_ids
+        payments = self.payment_ids._bks_filter_genex_export_payments()
         payments._bks_check_genex_export_eligibility()
         already = payments.filtered("genex_exported")
         if already:
@@ -420,17 +425,106 @@ class BksGenexExportWizard(models.TransientModel):
     def _export_timestamp():
         return datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    def _store_filestore_attachment(self, filename, raw_bytes):
+    @staticmethod
+    def _vdm_batch_reference(export_date):
+        return "VDM %02d %02d" % (export_date.month, export_date.year % 100)
+
+    def _store_filestore_attachment(self, filename, raw_bytes, mimetype):
         return self.env["ir.attachment"].create(
             {
                 "name": filename,
                 "type": "binary",
                 "raw": raw_bytes,
-                "mimetype": (
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                ),
+                "mimetype": mimetype,
             }
         )
+
+    @staticmethod
+    def _sanitize_rib(rib):
+        return re.sub(r"[\s\-]", "", str(rib or ""))[:24]
+
+    def _beneficiary_bank_code(self, rib, company):
+        clean = self._sanitize_rib(rib)
+        if len(clean) >= 3 and clean[:3].isdigit():
+            return int(clean[:3])
+        return company.genex_vdm_bank_code or 362
+
+    def _load_vdm_template_workbook(self):
+        if not openpyxl:
+            raise UserError(
+                _("Bibliothèque Python openpyxl requise : %s") % _openpyxl_import_error
+            )
+        path = file_path(_VDM_TEMPLATE_PATH)
+        return openpyxl.load_workbook(path)
+
+    def _build_vdm_workbook(self, payments):
+        company = payments[:1].company_id if payments else self.env.company
+        export_date = fields.Date.context_today(self)
+        wb = self._load_vdm_template_workbook()
+        ws = wb.active
+        agency = company.genex_vdm_agency_code or "1000"
+        vdm_ref = self._vdm_batch_reference(export_date)
+        ws.cell(row=3, column=1, value=export_date.strftime("%d/%m/%y"))
+        ws.cell(row=3, column=2, value=company.genex_vdm_bank_code or 362)
+        ws.cell(row=3, column=3, value=agency)
+        ws.cell(row=3, column=4, value=company.genex_vdm_remitter_rib or "")
+        ws.cell(row=3, column=5, value=company.genex_vdm_rib_key or "")
+        ws.cell(row=3, column=6, value=company.genex_vdm_convention_ref or "")
+        ws.cell(row=3, column=7, value=vdm_ref)
+
+        first_data_row = 6
+        for idx, payment in enumerate(payments):
+            row = first_data_row + idx
+            rib = self._sanitize_rib(
+                payment.partner_bank_id.sanitized_acc_number
+                or payment.partner_bank_id.acc_number
+            )
+            ws.cell(row=row, column=1, value=payment.amount)
+            ws.cell(
+                row=row,
+                column=2,
+                value=self._payment_display_reference(payment) or None,
+            )
+            ws.cell(row=row, column=3, value=self._beneficiary_bank_code(rib, company))
+            ws.cell(row=row, column=4, value=int(agency) if str(agency).isdigit() else agency)
+            ws.cell(row=row, column=5, value=rib or None)
+            ws.cell(row=row, column=6, value=payment.partner_id.name or "")
+
+        last_row = first_data_row + len(payments) - 1
+        if payments:
+            ws.cell(row=7, column=1, value=f"=SUM(A{first_data_row}:A{last_row})")
+            ws.cell(row=8, column=1, value=f"=COUNT(A{first_data_row}:A{last_row})")
+        else:
+            ws.cell(row=7, column=1, value=0)
+            ws.cell(row=8, column=1, value=0)
+        ws.cell(row=8, column=2, value="NBR DE LIGNES ")
+        return wb
+
+    def _load_ov_template_bytes(self):
+        with open(file_path(_OV_TEMPLATE_PATH), "rb") as template_file:
+            return template_file.read()
+
+    def _build_ov_doc(self, payments, export_date):
+        company = payments[:1].company_id if payments else self.env.company
+        total = sum(payments.mapped("amount"))
+        count = len(payments)
+        template = self._load_ov_template_bytes()
+        vdm_ref = self._vdm_batch_reference(export_date)
+        rib_display = company.genex_ov_debit_rib_display or ""
+        replacements = {
+            b"JJ/MM/AA": export_date.strftime("%d/%m/%y").encode("latin-1"),
+            b"XXXX/AA": vdm_ref.encode("latin-1"),
+            b" X ": (" %d " % count).encode("latin-1"),
+            b"X DHS": ("%s DHS" % int(round(total))).encode("latin-1"),
+        }
+        if rib_display:
+            old_rib = b"362 780 93 6990 8 000 643 572 74"
+            replacements[old_rib] = rib_display.encode("latin-1")
+        content = template
+        for old, new in replacements.items():
+            if old in content:
+                content = content.replace(old, new)
+        return content
 
     def _build_jvticket_workbook(self, moves):
         if not openpyxl:
@@ -488,39 +582,6 @@ class BksGenexExportWizard(models.TransientModel):
             return payment.payment_method_line_id.name or ""
         return ""
 
-    def _build_reglements_workbook(self, payments):
-        if not openpyxl:
-            raise UserError(
-                _("Bibliothèque Python openpyxl requise : %s") % _openpyxl_import_error
-            )
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Reglements"
-        header_font = Font(bold=True)
-        for col, title in enumerate(IMAL_REGLEMENT_HEADERS, start=1):
-            cell = ws.cell(row=1, column=col, value=title)
-            cell.font = header_font
-        row_idx = 2
-        for payment in payments:
-            rib = payment.partner_bank_id.sanitized_acc_number or payment.partner_bank_id.acc_number or ""
-            rib = re.sub(r"[\s\-]", "", str(rib))[:24]
-            ws.cell(row=row_idx, column=1, value=self._payment_bank_code(payment))
-            ws.cell(row=row_idx, column=2, value=payment.amount)
-            ws.cell(row=row_idx, column=3, value=payment.partner_id.name or "")
-            ws.cell(row=row_idx, column=4, value=rib or None)
-            ws.cell(
-                row=row_idx,
-                column=5,
-                value=self._payment_settlement_mode_label(payment) or None,
-            )
-            ws.cell(
-                row=row_idx,
-                column=6,
-                value=self._payment_display_reference(payment) or None,
-            )
-            row_idx += 1
-        return wb
-
     def action_export_genex(self):
         self.ensure_one()
         if self.date_from > self.date_to:
@@ -529,23 +590,51 @@ class BksGenexExportWizard(models.TransientModel):
         ts = self._export_timestamp()
         if self._is_payment_genex_export():
             payments = self._get_payments()
-            wb = self._build_reglements_workbook(payments)
-            filename = "ODOO_IMAL_REGLEMENTS_%s.xlsx" % ts
+            export_date = fields.Date.context_today(self)
+            wb = self._build_vdm_workbook(payments)
+            xlsx_name = "ODOO_IMAL_REGLEMENTS_%s.xlsx" % ts
+            ov_name = "ODOO_OV_REGLEMENTS_%s.doc" % ts
+            buffer = io.BytesIO()
+            wb.save(buffer)
+            xlsx_raw = buffer.getvalue()
+            ov_raw = self._build_ov_doc(payments, export_date)
+            xlsx_mimetype = (
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            self._store_filestore_attachment(xlsx_name, xlsx_raw, xlsx_mimetype)
+            self._store_filestore_attachment(
+                ov_name,
+                ov_raw,
+                "application/msword",
+            )
             payments._mark_genex_exported()
+            self.write(
+                {
+                    "file_data": base64.b64encode(xlsx_raw),
+                    "file_name": xlsx_name,
+                    "ov_file_data": base64.b64encode(ov_raw),
+                    "ov_file_name": ov_name,
+                }
+            )
         else:
             moves = self._get_moves()
             wb = self._build_jvticket_workbook(moves)
             filename = "ODOO_GENEX_%s.xlsx" % ts
+            buffer = io.BytesIO()
+            wb.save(buffer)
+            raw = buffer.getvalue()
+            self._store_filestore_attachment(
+                filename,
+                raw,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
             moves._mark_genex_exported()
-
-        buffer = io.BytesIO()
-        wb.save(buffer)
-        raw = buffer.getvalue()
-        self._store_filestore_attachment(filename, raw)
-        self.write(
-            {
-                "file_data": base64.b64encode(raw),
-                "file_name": filename,
-            }
-        )
+            self.write(
+                {
+                    "file_data": base64.b64encode(raw),
+                    "file_name": filename,
+                    "ov_file_data": False,
+                    "ov_file_name": False,
+                }
+            )
         return self._reopen_wizard()

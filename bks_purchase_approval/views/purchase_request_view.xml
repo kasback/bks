@@ -1,5 +1,56 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record id="view_purchase_request_form_bks_da_ui" model="ir.ui.view">
+        <field name="name">purchase.request.form.bks.da.ui</field>
+        <field name="model">purchase.request</field>
+        <field name="inherit_id" ref="purchase_request.view_purchase_request_form" />
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <field name="picking_type_id" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_da_extra_fields</attribute>
+                <attribute name="string">Type d'opération</attribute>
+            </field>
+            <xpath expr="//form/chatter" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_da_extra_fields</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_purchase_request_tree_bks_da_ui" model="ir.ui.view">
+        <field name="name">purchase.request.list.bks.da.ui</field>
+        <field name="model">purchase.request</field>
+        <field name="inherit_id" ref="purchase_request.view_purchase_request_tree" />
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <field name="origin" position="after">
+                <field name="description" optional="show" />
+            </field>
+            <field name="activity_ids" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_da_extra_fields</attribute>
+            </field>
+        </field>
+    </record>
+
+    <record id="view_purchase_request_search_bks_da_ui" model="ir.ui.view">
+        <field name="name">purchase.request.search.bks.da.ui</field>
+        <field name="model">purchase.request</field>
+        <field name="inherit_id" ref="purchase_request.view_purchase_request_search" />
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <field name="picking_type_id" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_da_extra_fields</attribute>
+            </field>
+        </field>
+    </record>
+
     <record id="view_purchase_request_form_bks_approval" model="ir.ui.view">
         <field name="name">purchase.request.form.bks.approval</field>
         <field name="model">purchase.request</field>
@@ -17,6 +68,15 @@
             <button name="button_rejected" position="attributes">
                 <attribute name="invisible">1</attribute>
             </button>
+            <button name="action_view_purchase_order" position="attributes">
+                <attribute name="string">Bons de commandes</attribute>
+            </button>
+            <xpath
+                expr="//button[@name='action_view_purchase_order']/field[@name='purchase_count']"
+                position="attributes"
+            >
+                <attribute name="string">Bons de commandes</attribute>
+            </xpath>
         </field>
     </record>
 </odoo>
