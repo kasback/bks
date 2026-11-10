@@ -92,6 +92,8 @@ msgid "Invoices where validation has not started"
 msgstr "Factures avec validation non commencée"
 
 #. module: account_move_tier_validation
+#. odoo-python
+#: code:addons/account_move_tier_validation/models/account_move.py:0
 #: model:ir.model,name:account_move_tier_validation.model_account_move
 msgid "Journal Entry"
 msgstr "Pièce comptable"

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_picking_form_bks_reception_ui" model="ir.ui.view">
+        <field name="name">stock.picking.form.bks.reception.ui</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form" />
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <field name="picking_type_id" position="attributes">
+                <attribute name="invisible">picking_type_code == 'incoming'</attribute>
+            </field>
+            <field name="picking_type_id" position="after">
+                <field
+                    name="picking_type_id"
+                    groups="bks_purchase_approval.group_bks_reception_extra_fields"
+                    invisible="picking_type_code != 'incoming'"
+                    options="{'no_open': True}"
+                    readonly="state in ('done', 'cancel')"
+                    domain="[('code', 'in', ('incoming', 'outgoing', 'internal'))]"
+                />
+            </field>
+            <label for="scheduled_date" position="replace">
+                <label
+                    for="scheduled_date"
+                    string="Date de réception"
+                    invisible="picking_type_code != 'incoming'"
+                />
+                <label
+                    for="scheduled_date"
+                    invisible="picking_type_code == 'incoming'"
+                />
+            </label>
+        </field>
+    </record>
+
+    <record id="view_picking_tree_bks_reception_ui" model="ir.ui.view">
+        <field name="name">stock.picking.list.bks.reception.ui</field>
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.vpicktree" />
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <field name="picking_type_id" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_reception_extra_fields</attribute>
+            </field>
+        </field>
+    </record>
+</odoo>

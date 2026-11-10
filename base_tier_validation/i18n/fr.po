@@ -20,13 +20,25 @@ msgstr ""
 #. odoo-python
 #: code:addons/base_tier_validation/models/tier_validation.py:0
 msgid "%(icon)s Pending validation by %(todo_by)s"
-msgstr ""
+msgstr "%(icon)s En attente de validation par %(todo_by)s"
 
 #. module: base_tier_validation
 #. odoo-python
 #: code:addons/base_tier_validation/models/tier_validation.py:0
 msgid "%(icon)s This %(model_name)s needs to be validated"
-msgstr ""
+msgstr "%(icon)s %(model_name)s : validation requise"
+
+#. module: base_tier_validation
+#. odoo-python
+#: code:addons/base_tier_validation/models/tier_validation.py:0
+msgid "Operation has been <b>validated</b>!"
+msgstr "L'opération a été <b>validée</b> !"
+
+#. module: base_tier_validation
+#. odoo-python
+#: code:addons/base_tier_validation/models/tier_validation.py:0
+msgid "Operation has been <b>rejected</b>."
+msgstr "L'opération a été <b>rejetée</b>."
 
 #. module: base_tier_validation
 #: model_terms:ir.ui.view,arch_db:base_tier_validation.tier_validation_label

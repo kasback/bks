@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="group_bks_reception_extra_fields" model="res.groups">
+        <field name="name">Afficher champs extra Réception</field>
+        <field name="sequence">9</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Sur les réceptions (transferts entrants) : affiche le type d'opération.</field>
+    </record>
+</odoo>

@@ -169,7 +169,8 @@ class TierValidation(models.AbstractModel):
         return Domain("id", model_operator, reviews_query.subselect("DISTINCT res_id"))
 
     def _get_to_validate_message_name(self):
-        return self._description
+        model = self.env["ir.model"]._get(self._name)
+        return (model.name if model else False) or self._description
 
     def _get_to_validate_message(self):
         """Build the contextual "needs to be validated" banner body.

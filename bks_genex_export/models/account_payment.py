@@ -27,12 +27,20 @@ class AccountPayment(models.Model):
         compute="_compute_bks_genex_payment_buttons",
     )
 
+    def _bks_filter_genex_export_payments(self):
+        """Paiements éligibles à l'export iMal (virements bancaires uniquement)."""
+        if hasattr(self, "_bks_is_ma_bank_transfer"):
+            return self.filtered(lambda pay: pay._bks_is_ma_bank_transfer())
+        return self
+
     @api.depends(
         "state",
         "validation_status",
         "move_id",
         "genex_exported",
         "bks_tier_governed",
+        "payment_method_line_id",
+        "l10n_ma_reports_payment_method",
     )
     def _compute_bks_genex_payment_buttons(self):
         for pay in self:
@@ -42,6 +50,7 @@ class AccountPayment(models.Model):
                 and pay.state == "in_process"
                 and pay.move_id
                 and not pay.genex_exported
+                and pay._bks_is_ma_bank_transfer()
             )
 
     @api.depends(
@@ -120,17 +129,33 @@ class AccountPayment(models.Model):
                         name=pay.display_name,
                     )
                 )
+            elif not pay._bks_is_ma_bank_transfer():
+                errors.append(
+                    _(
+                        "%(name)s : seuls les virements bancaires sont exportables "
+                        "vers iMal.",
+                        name=pay.display_name,
+                    )
+                )
         if errors:
             raise UserError("\n".join(errors))
 
     def action_open_genex_export_wizard(self):
-        self._bks_check_genex_export_eligibility()
-        dates = self.mapped("date")
+        payments = self._bks_filter_genex_export_payments()
+        if not payments:
+            raise UserError(
+                _(
+                    "Aucun paiement en mode virement bancaire sélectionné "
+                    "pour l'export iMal."
+                )
+            )
+        payments._bks_check_genex_export_eligibility()
+        dates = payments.mapped("date")
         wizard = self.env["bks.genex.export.wizard"].create(
             {
                 "date_from": min(dates),
                 "date_to": max(dates),
-                "payment_ids": [(6, 0, self.ids)],
+                "payment_ids": [(6, 0, payments.ids)],
                 "bks_payment_export": True,
             }
         )

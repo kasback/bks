@@ -45,11 +45,14 @@ class AccountPayment(models.Model):
             codes.append(_BKS_MA_TRANSFER_METHOD_CODE)
         return codes
 
-    def _bks_ma_transfer_requires_partner_bank(self):
+    def _bks_is_ma_bank_transfer(self):
         self.ensure_one()
         if self.payment_method_code == _BKS_MA_TRANSFER_METHOD_CODE:
             return True
         return self.l10n_ma_reports_payment_method == _BKS_MA_TRANSFER_DGI_CODE
+
+    def _bks_ma_transfer_requires_partner_bank(self):
+        return self._bks_is_ma_bank_transfer()
 
     def _bks_sync_payment_method_line_from_dgi(self):
         _bks_sync_payment_method_line_from_dgi(self)

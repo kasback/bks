@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <template id="report_purchaseorder_bks_document">
+        <t t-set="bks" t-value="o._bks_po_print_data()" />
+        <div class="article">
+            <div class="page bks-po">
+                <style>
+                    .bks-po { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #000; }
+                    .bks-po-header { width: 100%; margin-bottom: 8px; }
+                    .bks-po-header td { vertical-align: top; }
+                    .bks-po-logo { max-height: 48px; max-width: 180px; }
+                    .bks-po-partner { text-align: center; }
+                    .bks-po-partner .city-date { margin-bottom: 8px; }
+                    .bks-po-partner .name { font-size: 14px; font-weight: bold; }
+                    .bks-po-service { font-size: 13px; font-weight: bold; margin: 12px 0 8px 0; }
+                    .bks-po-title { font-weight: bold; margin: 4px 0; }
+                    .bks-po-objet { font-size: 12px; font-weight: bold; margin: 10px 0 6px 0; }
+                    .bks-po-table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+                    .bks-po-table th {
+                        background: #99CC00; border: 1px solid #000; text-align: center;
+                        padding: 8px 4px; font-size: 11px;
+                    }
+                    .bks-po-table td {
+                        border: 1px solid #000; text-align: center; padding: 8px 4px;
+                        vertical-align: middle;
+                    }
+                    .bks-po-table td.desc { white-space: pre-line; }
+                    .bks-po-comment {
+                        border: 1px solid #000; padding: 8px 10px; margin: 8px 0 14px 0;
+                    }
+                    .bks-po-signs { width: 100%; margin-top: 28px; }
+                    .bks-po-signs td { text-align: center; width: 50%; }
+                    .bks-po-signs .who { font-size: 12px; font-weight: bold; }
+                </style>
+                <table class="bks-po-header">
+                    <tr>
+                        <td style="width: 42%;">
+                            <img
+                                t-if="bks['logo']"
+                                t-att-src="image_data_uri(bks['logo'])"
+                                class="bks-po-logo"
+                                alt="Logo"
+                            />
+                        </td>
+                        <td class="bks-po-partner">
+                            <div class="city-date" t-out="bks['city_date']" />
+                            <div class="name" t-out="bks['partner_name']" />
+                            <div t-out="bks['partner_city']" />
+                        </td>
+                    </tr>
+                </table>
+                <div class="bks-po-service" t-out="bks['service']" />
+                <div class="bks-po-title" t-out="bks['title']" />
+                <div class="bks-po-objet">Objet : <t t-out="bks['objet']" /></div>
+                <div class="bks-po-title">REFERENCE : <t t-out="bks['reference']" /></div>
+                <p style="margin-top: 14px;" t-out="bks['intro']" />
+                <table class="bks-po-table">
+                    <thead>
+                        <tr>
+                            <th>Désignation/Article/Référence</th>
+                            <th>Quantité</th>
+                            <th>Prix Unitaire DH / HT</th>
+                            <th>Prix Total DH / HT</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="bks['lines']" t-as="line">
+                            <td class="desc" t-out="line['name']" />
+                            <td t-out="line['qty']" t-options="{'widget': 'float', 'precision': 2}" />
+                            <td
+                                t-out="line['price_unit']"
+                                t-options="{'widget': 'float', 'precision': 2}"
+                            />
+                            <td
+                                t-out="line['price_subtotal']"
+                                t-options="{'widget': 'float', 'precision': 2}"
+                            />
+                        </tr>
+                        <tr>
+                            <td colspan="2" style="border: none;" />
+                            <td><strong>TOTAL HT</strong></td>
+                            <td>
+                                <strong
+                                    t-out="bks['amount_untaxed']"
+                                    t-options="{'widget': 'float', 'precision': 2}"
+                                />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="bks-po-title" t-out="bks['comment_title']" />
+                <div class="bks-po-comment" t-out="bks['comment']" />
+                <div class="bks-po-title" t-out="bks['conditions_title']" />
+                <div style="margin: 4px 0 2px 16px;">
+                    Date de livraison : <t t-out="bks['delivery_date']" />
+                </div>
+                <div style="margin: 2px 0 16px 16px;">
+                    Lieu de livraison : <t t-out="bks['delivery_place']" />
+                </div>
+                <p t-out="bks['closing']" />
+                <table class="bks-po-signs">
+                    <tr>
+                        <td class="who" t-out="bks['sign_left_name']" />
+                        <td class="who" t-out="bks['sign_right_name']" />
+                    </tr>
+                    <tr>
+                        <td t-out="bks['sign_left_title']" />
+                        <td t-out="bks['sign_right_title']" />
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <template id="report_purchaseorder_bks">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="bks_purchase_approval.report_purchaseorder_bks_document" />
+            </t>
+        </t>
+    </template>
+</odoo>

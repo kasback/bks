@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_bks_withholding" model="ir.ui.view">
+        <field name="name">res.config.settings.form.bks.withholding</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="l10n_account_withholding_tax.res_config_settings_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//setting[.//field[@name='withholding_tax_base_account_id']]" position="after">
+                <setting
+                    id="bks_withholding_on_invoice_setting"
+                    string="RAS achat à la facture (BKS)"
+                    help="Comptabilise les retenues à la source sur la facture fournisseur ; le paiement règle le net sans retenue."
+                    invisible="country_code != 'MA'"
+                >
+                    <field name="bks_l10n_ma_withholding_on_invoice" />
+                </setting>
+            </xpath>
+        </field>
+    </record>
+</odoo>

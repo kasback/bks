@@ -6,6 +6,30 @@
         <field name="privilege_id" eval="False" />
         <field
             name="comment"
-        >Autorise les boutons « Avoir » et « Remettre en brouillon » sur les factures et écritures. Réservé à la direction financière (comptabilité / administration).</field>
+        >Autorise les boutons « Avoir » et « Remettre en brouillon » sur les factures. Réservé à la direction financière (comptabilité / administration).</field>
+    </record>
+    <record id="group_bks_entry_post" model="res.groups">
+        <field name="name">Comptabiliser les pièces comptables</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Autorise le bouton « Comptabiliser » sur les pièces comptables (hors factures). À attribuer explicitement.</field>
+    </record>
+    <record id="group_bks_entry_reverse" model="res.groups">
+        <field name="name">Extourner les pièces comptables</field>
+        <field name="sequence">11</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Autorise le bouton « Extourner » sur les pièces comptables (hors factures). À attribuer explicitement.</field>
+    </record>
+    <record id="group_bks_entry_draft" model="res.groups">
+        <field name="name">Remettre en brouillon les pièces comptables</field>
+        <field name="sequence">12</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Autorise le bouton « Remettre en brouillon » sur les pièces comptables (hors factures). À attribuer explicitement.</field>
     </record>
 </odoo>

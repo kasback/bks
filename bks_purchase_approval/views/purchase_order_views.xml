@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
+    <record id="purchase_order_form_bks_bc_ui" model="ir.ui.view">
+        <field name="name">purchase.order.form.bks.bc.ui</field>
+        <field name="model">purchase.order</field>
+        <field
+            name="inherit_id"
+            ref="purchase_stock.purchase_order_view_form_inherit"
+        />
+        <field name="priority">40</field>
+        <field name="arch" type="xml">
+            <field name="picking_type_id" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_bc_extra_fields</attribute>
+            </field>
+            <field name="dest_address_id" position="attributes">
+                <attribute
+                    name="groups"
+                >bks_purchase_approval.group_bks_bc_extra_fields</attribute>
+            </field>
+        </field>
+    </record>
+
     <record id="purchase_order_form_bks_send_email_access" model="ir.ui.view">
         <field name="name">purchase.order.form.bks.send.email.access</field>
         <field name="model">purchase.order</field>
@@ -35,6 +57,15 @@
                 <attribute
                     name="invisible"
                 >state != 'purchase' or not bks_can_send_bdc_email</attribute>
+            </xpath>
+            <xpath
+                expr="//header/button[@name='%(purchase.action_report_purchase_order)d']"
+                position="attributes"
+            >
+                <attribute
+                    name="name"
+                >%(bks_purchase_approval.action_report_purchase_order_bks)d</attribute>
+                <attribute name="string">Imprimer</attribute>
             </xpath>
         </field>
     </record>
