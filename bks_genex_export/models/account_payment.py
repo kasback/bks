@@ -82,6 +82,9 @@ class AccountPayment(models.Model):
             "genex_exported",
             "genex_export_date",
             "genex_export_user_id",
+            "bks_payment_order_generated",
+            "bks_payment_order_generated_at",
+            "bks_payment_order_attachment_id",
         ]
 
     def _mark_genex_exported(self):

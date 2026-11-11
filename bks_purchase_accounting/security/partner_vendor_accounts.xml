@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="group_bks_partner_vendor_accounts" model="res.groups">
+        <field name="name">Comptes fournisseur (fiche partenaire)</field>
+        <field name="sequence">45</field>
+        <field name="privilege_id" eval="False" />
+        <field
+            name="comment"
+        >Permet de renseigner le compte fournisseur, l'avance et le FNP sur la fiche partenaire. Non destiné aux profils Achats (ex. Acheteur).</field>
+    </record>
+</odoo>

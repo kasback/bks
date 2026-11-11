@@ -29,9 +29,29 @@
                     type="object"
                     class="btn-secondary"
                     invisible="not bks_show_payment_order_button"
+                    confirm="Le téléchargement de l'ordre de paiement est unique : le fichier est enregistré sur le serveur et ce bouton disparaîtra ensuite. En cas de perte du fichier, contactez la comptabilité. Voulez-vous continuer ?"
                 />
             </xpath>
             <xpath expr="//group[@name='group2']" position="inside">
+                <field
+                    name="bks_payment_order_generated"
+                    string="Ordre de paiement généré"
+                    readonly="1"
+                    widget="boolean"
+                    groups="base.group_system"
+                />
+                <field
+                    name="bks_payment_order_generated_at"
+                    readonly="1"
+                    invisible="not bks_payment_order_generated"
+                    groups="base.group_system"
+                />
+                <field
+                    name="bks_payment_order_attachment_id"
+                    readonly="1"
+                    invisible="not bks_payment_order_generated"
+                    groups="base.group_system"
+                />
                 <field
                     name="genex_exported"
                     string="Est exporté GENEX"

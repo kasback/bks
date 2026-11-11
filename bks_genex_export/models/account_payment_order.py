@@ -1,9 +1,10 @@
-import io
 import re
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import file_path
+
+from .xlsx_template_utils import save_workbook_preserve_template
 
 try:
     import openpyxl
@@ -17,6 +18,24 @@ _OP_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_OP.xlsx"
 class AccountPayment(models.Model):
     _inherit = "account.payment"
 
+    bks_payment_order_generated = fields.Boolean(
+        string="Ordre de paiement généré",
+        copy=False,
+        readonly=True,
+        index=True,
+    )
+    bks_payment_order_generated_at = fields.Datetime(
+        string="Date génération ordre de paiement",
+        copy=False,
+        readonly=True,
+    )
+    bks_payment_order_attachment_id = fields.Many2one(
+        comodel_name="ir.attachment",
+        string="Fichier ordre de paiement",
+        copy=False,
+        readonly=True,
+        ondelete="set null",
+    )
     bks_show_payment_order_button = fields.Boolean(
         compute="_compute_bks_payment_order_button",
     )
@@ -26,6 +45,7 @@ class AccountPayment(models.Model):
         "validation_status",
         "move_id",
         "bks_tier_governed",
+        "bks_payment_order_generated",
     )
     def _compute_bks_payment_order_button(self):
         for pay in self:
@@ -34,6 +54,7 @@ class AccountPayment(models.Model):
                 and pay.validation_status == "validated"
                 and pay.state == "in_process"
                 and pay.move_id
+                and not pay.bks_payment_order_generated
             )
 
     @staticmethod
@@ -176,14 +197,19 @@ class AccountPayment(models.Model):
 
     def action_bks_print_payment_order(self):
         self.ensure_one()
+        if self.bks_payment_order_generated:
+            raise UserError(
+                _(
+                    "L'ordre de paiement a déjà été généré une fois pour ce "
+                    "règlement. Contactez la comptabilité / l'administrateur "
+                    "pour le retélécharger."
+                )
+            )
         self._bks_check_payment_order_print_eligibility()
         wb = self._bks_build_payment_order_workbook()
-        buffer = io.BytesIO()
-        wb.save(buffer)
-        raw = buffer.getvalue()
+        template_path = file_path(_OP_TEMPLATE_PATH)
+        raw = save_workbook_preserve_template(wb, template_path)
         filename = self._bks_payment_order_filename()
-        if not self.genex_exported:
-            self._mark_genex_exported()
         attachment = self.env["ir.attachment"].create(
             {
                 "name": filename,
@@ -197,6 +223,15 @@ class AccountPayment(models.Model):
                 ),
             }
         )
+        self.write(
+            {
+                "bks_payment_order_generated": True,
+                "bks_payment_order_generated_at": fields.Datetime.now(),
+                "bks_payment_order_attachment_id": attachment.id,
+            }
+        )
+        if not self.genex_exported:
+            self._mark_genex_exported()
         return {
             "type": "ir.actions.act_url",
             "url": "/web/content/%s?download=true" % attachment.id,

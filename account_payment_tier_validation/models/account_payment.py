@@ -1,7 +1,7 @@
 # Copyright 2025 Spearhead - Ricardo Jara
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 
-from odoo import _, api, fields, models
+from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
@@ -48,6 +48,15 @@ class AccountPayment(models.Model):
         string="Taux wizard",
         copy=False,
         help="Taux forcé lors de l'enregistrement du paiement (écart de change).",
+    )
+    bks_conversion_move_id = fields.Many2one(
+        comodel_name="account.move",
+        string="Écart de conversion",
+        copy=False,
+        readonly=True,
+        help="Écart entre le montant décaissé (cours de règlement) et le montant "
+        "comptabilisé sur la facture (cours de comptabilisation), constaté sur "
+        "le compte pivot du mode de règlement.",
     )
 
     @api.depends(
@@ -338,7 +347,7 @@ class AccountPayment(models.Model):
                 continue
             payment_lines = payment.move_id.line_ids.filtered_domain(domain)
             extra_context = {}
-            if payment.bks_register_forced_rate:
+            if payment.bks_register_forced_rate and not payment.bks_conversion_move_id:
                 extra_context["forced_rate_from_register_payment"] = (
                     payment.bks_register_forced_rate
                 )
@@ -413,9 +422,155 @@ class AccountPayment(models.Model):
             if not pay.move_id:
                 pay._generate_journal_entry()
             if pay.move_id.state == "draft":
+                difference, pivot_account = pay._bks_align_payment_to_invoice_rate()
                 pay.move_id.action_post()
+                if difference:
+                    pay._bks_create_conversion_move(difference, pivot_account)
         self._bks_reconcile_register_lines()
         return super().action_validate()
+
+    def _bks_paid_invoice_currency_amount(self, counterpart, invoice_currency):
+        self.ensure_one()
+        if self.currency_id == invoice_currency:
+            return counterpart.amount_currency
+        if self.bks_register_forced_rate:
+            return invoice_currency.round(
+                counterpart.balance * self.bks_register_forced_rate
+            )
+        return self.company_currency_id._convert(
+            counterpart.balance, invoice_currency, self.company_id, self.date
+        )
+
+    def _bks_align_payment_to_invoice_rate(self):
+        """Règlement fournisseur d'une facture en devise : écriture au cours de la facture.
+
+        Le montant décaissé (cours du règlement) diffère du montant comptabilisé
+        sur la facture ; l'écart est constaté à part sur le compte pivot du mode
+        de règlement au lieu du compte fournisseur. Retourne (écart, compte pivot).
+        """
+        self.ensure_one()
+        no_conversion = (0.0, self.env["account.account"])
+        company_currency = self.company_currency_id
+        invoice_lines = self.bks_register_reconcile_line_ids.filtered(
+            lambda line: not line.reconciled
+        )
+        invoice_currency = invoice_lines.currency_id
+        if (
+            self.payment_type != "outbound"
+            or self.partner_type != "supplier"
+            or len(invoice_currency) != 1
+            or invoice_currency == company_currency
+            or self.currency_id not in (invoice_currency, company_currency)
+            or self.bks_conversion_move_id
+        ):
+            return no_conversion
+        move = self.move_id
+        liquidity = move.line_ids.filtered(
+            lambda line: line.account_id == self.outstanding_account_id
+        )
+        counterpart = move.line_ids.filtered(
+            lambda line: line.account_id == self.destination_account_id
+        )
+        if len(move.line_ids) != 2 or len(liquidity) != 1 or len(counterpart) != 1:
+            return no_conversion
+        residual_currency = -sum(invoice_lines.mapped("amount_residual_currency"))
+        residual = -sum(invoice_lines.mapped("amount_residual"))
+        paid_currency = self._bks_paid_invoice_currency_amount(
+            counterpart, invoice_currency
+        )
+        if invoice_currency.compare_amounts(residual_currency, 0) <= 0:
+            return no_conversion
+        if invoice_currency.compare_amounts(paid_currency, residual_currency) > 0:
+            if not self.bks_register_forced_rate:
+                return no_conversion
+            paid_currency = residual_currency
+        booked = company_currency.round(residual * paid_currency / residual_currency)
+        difference = company_currency.round(counterpart.balance - booked)
+        liquidity_vals = {"balance": -booked}
+        if liquidity.currency_id == company_currency:
+            liquidity_vals["amount_currency"] = -booked
+        move.with_context(
+            skip_account_move_synchronization=True,
+            skip_validation_check=True,
+        ).write(
+            {
+                "line_ids": [
+                    Command.update(
+                        counterpart.id,
+                        {
+                            "currency_id": invoice_currency.id,
+                            "amount_currency": paid_currency,
+                            "balance": booked,
+                        },
+                    ),
+                    Command.update(liquidity.id, liquidity_vals),
+                ]
+            }
+        )
+        if company_currency.is_zero(difference):
+            return no_conversion
+        return difference, liquidity.account_id
+
+    def _bks_create_conversion_move(self, difference, pivot_account):
+        self.ensure_one()
+        company = self.company_id
+        if difference > 0:
+            exchange_account = company.expense_currency_exchange_account_id
+        else:
+            exchange_account = company.income_currency_exchange_account_id
+        if not exchange_account:
+            raise UserError(
+                _(
+                    "Renseignez les comptes de gain et de perte de change "
+                    "dans les paramètres de comptabilité."
+                )
+            )
+        label = _("Écart de conversion %s", self.name)
+        move = (
+            self.env["account.move"]
+            .with_context(skip_validation_check=True)
+            .create(
+                {
+                    "move_type": "entry",
+                    "journal_id": self.journal_id.id,
+                    "date": self.date,
+                    "ref": label,
+                    "line_ids": [
+                        Command.create(
+                            {
+                                "name": label,
+                                "account_id": pivot_account.id,
+                                "partner_id": self.partner_id.id,
+                                "balance": -difference,
+                            }
+                        ),
+                        Command.create(
+                            {
+                                "name": label,
+                                "account_id": exchange_account.id,
+                                "partner_id": self.partner_id.id,
+                                "balance": difference,
+                            }
+                        ),
+                    ],
+                }
+            )
+        )
+        move._post(soft=False)
+        self.with_context(skip_validation_check=True).write(
+            {"bks_conversion_move_id": move.id}
+        )
+        return move
+
+    def _bks_remove_conversion_move(self):
+        for pay in self.filtered("bks_conversion_move_id"):
+            move = pay.bks_conversion_move_id
+            pay.with_context(skip_validation_check=True).write(
+                {"bks_conversion_move_id": False}
+            )
+            if move.state == "posted":
+                move.button_draft()
+            move.unlink()
 
     def action_draft(self):
         canceled = self.filtered(lambda pay: pay.state == "canceled")
@@ -426,6 +581,7 @@ class AccountPayment(models.Model):
                     "Créez un nouveau paiement."
                 )
             )
+        self._bks_remove_conversion_move()
         return super().action_draft()
 
     def _action_open_cancel_wizard(self):
@@ -447,6 +603,7 @@ class AccountPayment(models.Model):
         if governed and not self.env.context.get("bks_skip_cancel_warning"):
             if len(governed) == 1:
                 return governed._action_open_cancel_wizard()
+        self._bks_remove_conversion_move()
         return super().action_cancel()
 
     def _get_to_validate_message_name(self):

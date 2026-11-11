@@ -313,6 +313,11 @@ class AccountMove(models.Model):
 
     def action_post(self):
         for move in self:
+            if move.move_type == "in_invoice" and not (move.ref or "").strip():
+                raise UserError(
+                    "La référence facture est obligatoire sur la facture fournisseur "
+                    "(fournisseur : %s)." % (move.partner_id.display_name or "-")
+                )
             move._bks_check_guarantee_amount()
             if move.move_type == "in_invoice" and move.bks_guarantee_amount:
                 total = move.with_context(bks_skip_guarantee_check=True).amount_total

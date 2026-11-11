@@ -1,11 +1,19 @@
 import base64
 import io
 import re
+from copy import copy
 from datetime import datetime
 
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.tools.misc import file_path
+
+from odoo.addons.bks_genex_export.models.docx_template_utils import (
+    render_docx_template,
+)
+from odoo.addons.bks_genex_export.models.xlsx_template_utils import (
+    save_workbook_preserve_template,
+)
 
 try:
     import openpyxl
@@ -50,7 +58,7 @@ GENEX_JVTICKET_HEADERS = (
 )
 
 _VDM_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_VDM.xlsx"
-_OV_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_OV.doc"
+_OV_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_OV.docx"
 
 
 class BksGenexExportWizard(models.TransientModel):
@@ -313,6 +321,15 @@ class BksGenexExportWizard(models.TransientModel):
             or payment.display_name
         )
 
+    def _payment_invoice_reference(self, payment):
+        bills = payment.reconciled_bill_ids or payment.invoice_ids.filtered(
+            lambda move: move.move_type in ("in_invoice", "in_refund")
+        )
+        names = [name for name in bills.mapped("name") if name and name != "/"]
+        if names:
+            return " / ".join(names)
+        return self._payment_display_reference(payment)
+
     def _short_reference(self, move, payment=None):
         fnp = move._bks_genex_fnp_record()
         if fnp:
@@ -443,12 +460,6 @@ class BksGenexExportWizard(models.TransientModel):
     def _sanitize_rib(rib):
         return re.sub(r"[\s\-]", "", str(rib or ""))[:24]
 
-    def _beneficiary_bank_code(self, rib, company):
-        clean = self._sanitize_rib(rib)
-        if len(clean) >= 3 and clean[:3].isdigit():
-            return int(clean[:3])
-        return company.genex_vdm_bank_code or 362
-
     def _load_vdm_template_workbook(self):
         if not openpyxl:
             raise UserError(
@@ -473,8 +484,28 @@ class BksGenexExportWizard(models.TransientModel):
         ws.cell(row=3, column=7, value=vdm_ref)
 
         first_data_row = 6
+        sum_template_row = 7
+        count_template_row = 8
+        max_col = 7
+        row_styles = {
+            template_row: (
+                [copy(ws.cell(template_row, col)._style) for col in range(1, max_col + 1)],
+                ws.row_dimensions[template_row].height,
+            )
+            for template_row in (first_data_row, sum_template_row, count_template_row)
+        }
+
+        def apply_row_style(target_row, template_row):
+            styles, height = row_styles[template_row]
+            for col, style in enumerate(styles, start=1):
+                cell = ws.cell(target_row, col)
+                cell.value = None
+                cell._style = copy(style)
+            ws.row_dimensions[target_row].height = height
+
         for idx, payment in enumerate(payments):
             row = first_data_row + idx
+            apply_row_style(row, first_data_row)
             rib = self._sanitize_rib(
                 payment.partner_bank_id.sanitized_acc_number
                 or payment.partner_bank_id.acc_number
@@ -483,48 +514,45 @@ class BksGenexExportWizard(models.TransientModel):
             ws.cell(
                 row=row,
                 column=2,
-                value=self._payment_display_reference(payment) or None,
+                value=self._payment_invoice_reference(payment) or None,
             )
-            ws.cell(row=row, column=3, value=self._beneficiary_bank_code(rib, company))
+            ws.cell(row=row, column=3, value=362)
             ws.cell(row=row, column=4, value=int(agency) if str(agency).isdigit() else agency)
             ws.cell(row=row, column=5, value=rib or None)
             ws.cell(row=row, column=6, value=payment.partner_id.name or "")
 
-        last_row = first_data_row + len(payments) - 1
+        last_row = first_data_row + max(len(payments), 1) - 1
+        sum_row = last_row + 1
+        count_row = last_row + 2
+        apply_row_style(sum_row, sum_template_row)
+        apply_row_style(count_row, count_template_row)
         if payments:
-            ws.cell(row=7, column=1, value=f"=SUM(A{first_data_row}:A{last_row})")
-            ws.cell(row=8, column=1, value=f"=COUNT(A{first_data_row}:A{last_row})")
+            ws.cell(sum_row, 1).value = f"=SUM(A{first_data_row}:A{last_row})"
+            ws.cell(count_row, 1).value = f"=COUNT(A{first_data_row}:A{last_row})"
         else:
-            ws.cell(row=7, column=1, value=0)
-            ws.cell(row=8, column=1, value=0)
-        ws.cell(row=8, column=2, value="NBR DE LIGNES ")
+            apply_row_style(first_data_row, first_data_row)
+            ws.cell(sum_row, 1).value = 0
+            ws.cell(count_row, 1).value = 0
+        ws.cell(count_row, 2).value = "NBR DE LIGNES "
         return wb
-
-    def _load_ov_template_bytes(self):
-        with open(file_path(_OV_TEMPLATE_PATH), "rb") as template_file:
-            return template_file.read()
 
     def _build_ov_doc(self, payments, export_date):
         company = payments[:1].company_id if payments else self.env.company
         total = sum(payments.mapped("amount"))
         count = len(payments)
-        template = self._load_ov_template_bytes()
-        vdm_ref = self._vdm_batch_reference(export_date)
-        rib_display = company.genex_ov_debit_rib_display or ""
+        rib_display = (
+            company.genex_ov_debit_rib_display
+            or "362 780 93 6990 8 000 643 572 74."
+        ).strip()
         replacements = {
-            b"JJ/MM/AA": export_date.strftime("%d/%m/%y").encode("latin-1"),
-            b"XXXX/AA": vdm_ref.encode("latin-1"),
-            b" X ": (" %d " % count).encode("latin-1"),
-            b"X DHS": ("%s DHS" % int(round(total))).encode("latin-1"),
+            "{{OV_DATE}}": export_date.strftime("%d/%m/%y"),
+            "{{OV_REF}}": self._vdm_batch_reference(export_date),
+            "{{OV_RIB}}": rib_display,
+            "{{OV_COUNT}}": str(count),
+            "{{OV_TOTAL}}": "%s DHS" % int(round(total)),
         }
-        if rib_display:
-            old_rib = b"362 780 93 6990 8 000 643 572 74"
-            replacements[old_rib] = rib_display.encode("latin-1")
-        content = template
-        for old, new in replacements.items():
-            if old in content:
-                content = content.replace(old, new)
-        return content
+        template_path = file_path(_OV_TEMPLATE_PATH)
+        return render_docx_template(template_path, replacements)
 
     def _build_jvticket_workbook(self, moves):
         if not openpyxl:
@@ -593,10 +621,10 @@ class BksGenexExportWizard(models.TransientModel):
             export_date = fields.Date.context_today(self)
             wb = self._build_vdm_workbook(payments)
             xlsx_name = "ODOO_IMAL_REGLEMENTS_%s.xlsx" % ts
-            ov_name = "ODOO_OV_REGLEMENTS_%s.doc" % ts
-            buffer = io.BytesIO()
-            wb.save(buffer)
-            xlsx_raw = buffer.getvalue()
+            ov_name = "ODOO_OV_REGLEMENTS_%s.docx" % ts
+            xlsx_raw = save_workbook_preserve_template(
+                wb, file_path(_VDM_TEMPLATE_PATH)
+            )
             ov_raw = self._build_ov_doc(payments, export_date)
             xlsx_mimetype = (
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -605,7 +633,7 @@ class BksGenexExportWizard(models.TransientModel):
             self._store_filestore_attachment(
                 ov_name,
                 ov_raw,
-                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             )
             payments._mark_genex_exported()
             self.write(

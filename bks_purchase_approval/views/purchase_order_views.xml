@@ -22,12 +22,28 @@
         </field>
     </record>
 
+    <record id="purchase_order_form_bks_sale_purchase_readonly" model="ir.ui.view">
+        <field name="name">purchase.order.form.bks.sale.purchase.readonly</field>
+        <field name="model">purchase.order</field>
+        <field
+            name="inherit_id"
+            ref="purchase_stock.purchase_order_view_form_inherit"
+        />
+        <field name="priority">50</field>
+        <field name="arch" type="xml">
+            <field name="dest_address_id" position="attributes">
+                <attribute name="readonly">locked or bks_has_sale_order</attribute>
+            </field>
+        </field>
+    </record>
+
     <record id="purchase_order_form_bks_send_email_access" model="ir.ui.view">
         <field name="name">purchase.order.form.bks.send.email.access</field>
         <field name="model">purchase.order</field>
         <field name="inherit_id" ref="purchase.purchase_order_form" />
         <field name="arch" type="xml">
             <field name="state" position="after">
+                <field name="bks_has_sale_order" invisible="1" />
                 <field name="bks_can_send_ddp" invisible="1" />
                 <field name="bks_can_send_bdc_email" invisible="1" />
             </field>
