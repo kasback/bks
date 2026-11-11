@@ -1,11 +1,12 @@
 {
     "name": "BKS Purchase Accounting (FNP)",
-    "version": "19.0.1.0.11",
+    "version": "19.0.1.0.14",
     "category": "Accounting/Purchase",
     "summary": "Factures non parvenues, extourne à la facturation et retenue de garantie fournisseur",
     "depends": ["purchase_stock", "account", "purchase_down_payment"],
     "data": [
         "data/ir_sequence_data.xml",
+        "security/partner_vendor_accounts.xml",
         "security/ir.model.access.csv",
         "views/bks_purchase_fnp_views.xml",
         "views/res_config_settings_views.xml",

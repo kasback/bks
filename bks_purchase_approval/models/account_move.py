@@ -274,10 +274,9 @@ class AccountMove(models.Model):
         if missing:
             raise UserError(
                 _(
-                    "Indiquez l'unité opérationnelle sur la facture fournisseur "
-                    "avant de lancer la validation (obligatoire pour le "
-                    "co-ordonnateur lorsqu'il n'y a pas de DA ni de bon de "
-                    "commande)."
+                    "Impossible de déterminer l'unité opérationnelle sur cette "
+                    "facture fournisseur (BDC/DA ou département de l'employé "
+                    "créateur). La validation ne peut pas être lancée."
                 )
             )
         return super().request_validation()

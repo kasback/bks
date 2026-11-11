@@ -11,9 +11,7 @@
             <xpath expr="//group[@id='header_right_group']" position="inside">
                 <field
                     name="bks_operation_department_id"
-                    string="Unité opérationnelle"
-                    invisible="move_type not in ('in_invoice', 'in_refund', 'in_receipt') or purchase_order_count > 0"
-                    readonly="purchase_order_count > 0 or state != 'draft'"
+                    invisible="1"
                 />
             </xpath>
             <xpath

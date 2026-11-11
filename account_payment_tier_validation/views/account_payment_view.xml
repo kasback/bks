@@ -125,6 +125,12 @@
             <field name="date" position="attributes">
                 <attribute name="readonly">state not in ('draft', 'in_process')</attribute>
             </field>
+            <field name="date" position="after">
+                <field
+                    name="bks_conversion_move_id"
+                    invisible="not bks_conversion_move_id"
+                />
+            </field>
             <field name="memo" position="attributes">
                 <attribute name="readonly">state not in ('draft', 'in_process')</attribute>
             </field>

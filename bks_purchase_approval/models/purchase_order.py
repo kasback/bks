@@ -37,6 +37,22 @@ class PurchaseOrder(models.Model):
         readonly=True,
         help="Département du demandeur (ordonnateur) sur les DA liées à ce BDC.",
     )
+    bks_has_sale_order = fields.Boolean(
+        string="BC lié à une vente (technique)",
+        compute="_compute_bks_has_sale_order",
+    )
+
+    @api.depends("order_line.sale_line_id")
+    def _compute_bks_has_sale_order(self):
+        line_model = self.env["purchase.order.line"]
+        if "sale_line_id" not in line_model._fields:
+            for order in self:
+                order.bks_has_sale_order = False
+            return
+        for order in self:
+            order.bks_has_sale_order = any(
+                line.sale_line_id for line in order.order_line
+            )
 
     @api.model
     def _bks_user_can_create_vendor_bill(self):
