@@ -1,6 +1,7 @@
 import base64
 import io
 import re
+import zipfile
 from copy import copy
 from datetime import datetime
 
@@ -59,6 +60,78 @@ GENEX_JVTICKET_HEADERS = (
 
 _VDM_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_VDM.xlsx"
 _OV_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_OV.docx"
+_OV_FX_TEMPLATE_PATH = "bks_genex_export/static/src/templates/MODEL_OV_ETRANGER.docx"
+
+_FR_UNDER_20 = (
+    "ZERO", "UN", "DEUX", "TROIS", "QUATRE", "CINQ", "SIX", "SEPT", "HUIT",
+    "NEUF", "DIX", "ONZE", "DOUZE", "TREIZE", "QUATORZE", "QUINZE", "SEIZE",
+    "DIX SEPT", "DIX HUIT", "DIX NEUF",
+)
+_FR_TENS = (
+    "", "", "VINGT", "TRENTE", "QUARANTE", "CINQUANTE", "SOIXANTE",
+    "SOIXANTE", "QUATRE VINGT", "QUATRE VINGT",
+)
+
+
+def _fr_under_100(number):
+    if number < 20:
+        return _FR_UNDER_20[number]
+    tens, units = divmod(number, 10)
+    if tens == 7 or tens == 9:
+        base = _FR_TENS[tens]
+        rest = _fr_under_100(10 + units) if tens == 7 else _FR_UNDER_20[10 + units]
+        link = " ET " if units == 1 and tens == 7 else " "
+        return "%s%s%s" % (base, link, rest)
+    if units == 0:
+        return _FR_TENS[tens] + ("S" if tens == 8 else "")
+    if units == 1 and tens < 8:
+        return "%s ET UN" % _FR_TENS[tens]
+    return "%s %s" % (_FR_TENS[tens], _FR_UNDER_20[units])
+
+
+def _fr_under_1000(number):
+    if number < 100:
+        return _fr_under_100(number)
+    hundreds, rest = divmod(number, 100)
+    hundred = "CENT" if hundreds == 1 else "%s CENT" % _FR_UNDER_20[hundreds]
+    if rest == 0 and hundreds > 1:
+        hundred += "S"
+    if rest == 0:
+        return hundred
+    return "%s %s" % (hundred, _fr_under_100(rest))
+
+
+def _fr_integer(number):
+    if number == 0:
+        return "ZERO"
+    parts = []
+    millions, rest = divmod(number, 1_000_000)
+    if millions:
+        parts.append("UN MILLION" if millions == 1 else "%s MILLIONS" % _fr_under_1000(millions))
+    thousands, rest = divmod(rest, 1000)
+    if thousands:
+        parts.append("MILLE" if thousands == 1 else "%s MILLE" % _fr_under_1000(thousands))
+    if rest:
+        parts.append(_fr_under_1000(rest))
+    return " ".join(parts)
+
+
+def _amount_words(amount, currency):
+    rounded = currency.round(amount)
+    units = int(rounded)
+    cents = int(round((rounded - units) * 100))
+    unit_label = (currency.currency_unit_label or currency.name or "DEVISE").upper()
+    subunit = (currency.currency_subunit_label or "CENTIME").upper()
+    if units > 1 and not unit_label.endswith("S"):
+        unit_label += "S"
+    if cents != 1 and not subunit.endswith("S"):
+        subunit += "S"
+    return "%s %s ET %s %s" % (
+        _fr_integer(units),
+        unit_label,
+        _fr_integer(cents),
+        subunit,
+    )
 
 
 class BksGenexExportWizard(models.TransientModel):
@@ -95,6 +168,8 @@ class BksGenexExportWizard(models.TransientModel):
     file_name = fields.Char(string="Nom du fichier VDM", readonly=True)
     ov_file_data = fields.Binary(string="Fichier OV (Word)", readonly=True)
     ov_file_name = fields.Char(string="Nom du fichier OV", readonly=True)
+    ov_fx_file_data = fields.Binary(string="OV à l'étranger", readonly=True)
+    ov_fx_file_name = fields.Char(string="Nom OV à l'étranger", readonly=True)
     bks_payment_export = fields.Boolean(
         string="Export depuis paiements",
         default=lambda self: bool(self.env.context.get("bks_genex_payment_export")),
@@ -554,6 +629,77 @@ class BksGenexExportWizard(models.TransientModel):
         template_path = file_path(_OV_TEMPLATE_PATH)
         return render_docx_template(template_path, replacements)
 
+    def _foreign_currency_payments(self, payments):
+        return payments.filtered(
+            lambda payment: payment.currency_id != payment.company_id.currency_id
+        )
+
+    def _fx_gl_cif_seq(self, payment):
+        account = payment.outstanding_account_id
+        gl = (account.code or "369908")[:6] if account else "369908"
+        cif = getattr(account, "genex_cif", 0) or 10000001
+        seq = getattr(account, "genex_sequence", 0) or 1
+        return "GL %s   CIF %s    SEQ %03d" % (gl, cif, seq)
+
+    def _fx_object(self, payment):
+        reference = self._payment_invoice_reference(payment) or payment.name or ""
+        memo = (payment.memo or payment.payment_reference or "").strip()
+        if memo and memo not in reference:
+            return "F°%s - %s" % (reference, memo)
+        return "F°%s" % reference
+
+    def _build_ov_foreign_doc(self, payment):
+        company = payment.company_id
+        bank = payment.partner_bank_id
+        bank_partner = bank.bank_id if bank else False
+        address = " ".join(
+            part
+            for part in (
+                bank_partner.name if bank_partner else "",
+                bank_partner.street if bank_partner else "",
+                bank_partner.city if bank_partner else "",
+            )
+            if part
+        )
+        pay_date = payment.date or fields.Date.context_today(self)
+        replacements = {
+            "{{FX_DATE}}": pay_date.strftime("%d/%m/%Y"),
+            "{{FX_REF}}": "OV %s BKS/%s" % (payment.name or "", pay_date.year),
+            "{{FX_COMPANY}}": company.name or "",
+            "{{FX_RIB}}": (
+                company.genex_ov_debit_rib_display
+                or "362 780 93 6990 8 000 643 572 74"
+            ).strip().rstrip("."),
+            "{{FX_GL_CIF_SEQ}}": self._fx_gl_cif_seq(payment),
+            "{{FX_CURRENCY}}": (payment.currency_id.full_name or payment.currency_id.name or "").upper(),
+            "{{FX_AMOUNT}}": "%.2f" % payment.amount,
+            "{{FX_AMOUNT_WORDS}}": _amount_words(payment.amount, payment.currency_id),
+            "{{FX_BENEFICIARY}}": payment.partner_id.name or "",
+            "{{FX_IBAN}}": (bank.acc_number if bank else "") or "",
+            "{{FX_BANK}}": address,
+            "{{FX_SWIFT}}": (bank_partner.bic if bank_partner else "") or "",
+            "{{FX_OBJECT}}": self._fx_object(payment),
+        }
+        return render_docx_template(file_path(_OV_FX_TEMPLATE_PATH), replacements)
+
+    def _build_ov_foreign_bundle(self, payments, timestamp):
+        docs = []
+        for payment in payments:
+            safe_name = re.sub(r"[^\w.-]+", "_", payment.name or "paiement")
+            docs.append(
+                (
+                    "ODOO_OV_ETRANGER_%s.docx" % safe_name,
+                    self._build_ov_foreign_doc(payment),
+                )
+            )
+        if len(docs) == 1:
+            return docs[0]
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+            for name, raw in docs:
+                archive.writestr(name, raw)
+        return "ODOO_OV_ETRANGER_%s.zip" % timestamp, buffer.getvalue()
+
     def _build_jvticket_workbook(self, moves):
         if not openpyxl:
             raise UserError(
@@ -621,29 +767,53 @@ class BksGenexExportWizard(models.TransientModel):
             export_date = fields.Date.context_today(self)
             wb = self._build_vdm_workbook(payments)
             xlsx_name = "ODOO_IMAL_REGLEMENTS_%s.xlsx" % ts
-            ov_name = "ODOO_OV_REGLEMENTS_%s.docx" % ts
             xlsx_raw = save_workbook_preserve_template(
                 wb, file_path(_VDM_TEMPLATE_PATH)
             )
-            ov_raw = self._build_ov_doc(payments, export_date)
             xlsx_mimetype = (
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
             self._store_filestore_attachment(xlsx_name, xlsx_raw, xlsx_mimetype)
-            self._store_filestore_attachment(
-                ov_name,
-                ov_raw,
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            )
+            domestic = payments - self._foreign_currency_payments(payments)
+            foreign = self._foreign_currency_payments(payments)
+            values = {
+                "file_data": base64.b64encode(xlsx_raw),
+                "file_name": xlsx_name,
+                "ov_file_data": False,
+                "ov_file_name": False,
+                "ov_fx_file_data": False,
+                "ov_fx_file_name": False,
+            }
+            if domestic:
+                ov_name = "ODOO_OV_REGLEMENTS_%s.docx" % ts
+                ov_raw = self._build_ov_doc(domestic, export_date)
+                self._store_filestore_attachment(
+                    ov_name,
+                    ov_raw,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+                values.update(
+                    {
+                        "ov_file_data": base64.b64encode(ov_raw),
+                        "ov_file_name": ov_name,
+                    }
+                )
+            if foreign:
+                fx_name, fx_raw = self._build_ov_foreign_bundle(foreign, ts)
+                fx_mimetype = (
+                    "application/zip"
+                    if fx_name.endswith(".zip")
+                    else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+                self._store_filestore_attachment(fx_name, fx_raw, fx_mimetype)
+                values.update(
+                    {
+                        "ov_fx_file_data": base64.b64encode(fx_raw),
+                        "ov_fx_file_name": fx_name,
+                    }
+                )
             payments._mark_genex_exported()
-            self.write(
-                {
-                    "file_data": base64.b64encode(xlsx_raw),
-                    "file_name": xlsx_name,
-                    "ov_file_data": base64.b64encode(ov_raw),
-                    "ov_file_name": ov_name,
-                }
-            )
+            self.write(values)
         else:
             moves = self._get_moves()
             wb = self._build_jvticket_workbook(moves)
