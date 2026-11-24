@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_account_journal_form_payment_lines" model="ir.ui.view">
+        <field name="name">account.journal.form.bks.payment.lines</field>
+        <field name="model">account.journal</field>
+        <field name="inherit_id" ref="account.view_account_journal_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='inbound_payment_method_line_ids']" position="attributes">
+                <attribute name="readonly">0</attribute>
+            </xpath>
+            <xpath expr="//field[@name='outbound_payment_method_line_ids']" position="attributes">
+                <attribute name="readonly">0</attribute>
+            </xpath>
+            <xpath
+                expr="//field[@name='inbound_payment_method_line_ids']/list"
+                position="attributes"
+            >
+                <attribute name="editable">bottom</attribute>
+            </xpath>
+            <xpath
+                expr="//field[@name='outbound_payment_method_line_ids']/list"
+                position="attributes"
+            >
+                <attribute name="editable">bottom</attribute>
+            </xpath>
+            <xpath
+                expr="//field[@name='inbound_payment_method_line_ids']//field[@name='payment_account_id']"
+                position="replace"
+            >
+                <field name="default_account_id" column_invisible="1" />
+                <field
+                    name="payment_account_id"
+                    string="Comptes d'encaissements en suspens"
+                    placeholder="Pas de pièce comptable de paiement"
+                    options="{'no_quick_create': True}"
+                    readonly="0"
+                />
+            </xpath>
+            <xpath
+                expr="//field[@name='outbound_payment_method_line_ids']//field[@name='payment_account_id']"
+                position="replace"
+            >
+                <field name="default_account_id" column_invisible="1" />
+                <field
+                    name="payment_account_id"
+                    string="Comptes de paiements sortants en suspens"
+                    placeholder="Pas de pièce comptable de paiement"
+                    options="{'no_quick_create': True}"
+                    readonly="0"
+                />
+            </xpath>
+        </field>
+    </record>
+</odoo>

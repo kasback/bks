@@ -287,7 +287,11 @@ class BksGenexExportWizard(models.TransientModel):
             "view_mode": "form",
             "res_id": self.id,
             "target": "new",
-            "name": _("Export GENEX"),
+            "name": (
+                _("Exporter paiement")
+                if self.bks_payment_export
+                else _("Export GENEX")
+            ),
         }
 
     def _get_moves(self, raise_if_empty=True):

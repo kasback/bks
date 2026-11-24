@@ -4,7 +4,7 @@
     "name": "Payment Tier Validation",
     "summary": "Extends the functionality of Payment to "
     "support a tier validation process.",
-    "version": "19.0.1.0.30",
+    "version": "19.0.1.0.32",
     "category": "Accounting/Accounting",
     "website": "https://github.com/OCA/tier-validation",
     "author": "Odoo Community Association (OCA)",
@@ -20,6 +20,8 @@
         "security/payment_settlement_security.xml",
         "security/ir.model.access.csv",
         "data/tier_definition.xml",
+        "data/payment_method_foreign.xml",
+        "views/account_journal_views.xml",
         "wizard/bks_payment_validate_wizard_views.xml",
         "wizard/bks_payment_cancel_wizard_views.xml",
         "views/account_payment_register_views.xml",

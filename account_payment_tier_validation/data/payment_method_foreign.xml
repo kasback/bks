@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="payment_method_foreign_transfer_in" model="account.payment.method">
+        <field name="name">Virement à l'étranger</field>
+        <field name="code">ma_foreign_transfer</field>
+        <field name="payment_type">inbound</field>
+    </record>
+    <record id="payment_method_foreign_transfer_out" model="account.payment.method">
+        <field name="name">Virement à l'étranger</field>
+        <field name="code">ma_foreign_transfer</field>
+        <field name="payment_type">outbound</field>
+    </record>
+    <function model="account.payment.method" name="_bks_setup_foreign_transfer_lines" />
+</odoo>

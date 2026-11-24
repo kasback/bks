@@ -1,6 +1,6 @@
 {
     "name": "Export GENEX (iMal)",
-    "version": "19.0.1.0.35",
+    "version": "19.0.1.0.36",
     "category": "Accounting/Accounting",
     "summary": "Assistant d'export GENEX depuis les écritures comptables Odoo",
     "depends": [
