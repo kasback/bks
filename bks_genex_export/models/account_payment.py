@@ -85,6 +85,9 @@ class AccountPayment(models.Model):
             "bks_payment_order_generated",
             "bks_payment_order_generated_at",
             "bks_payment_order_attachment_id",
+            "bks_fx_payment_order_generated",
+            "bks_fx_payment_order_generated_at",
+            "bks_fx_payment_order_attachment_id",
         ]
 
     def _mark_genex_exported(self):
@@ -164,7 +167,7 @@ class AccountPayment(models.Model):
         )
         return {
             "type": "ir.actions.act_window",
-            "name": _("Export GENEX"),
+            "name": _("Exporter paiement"),
             "res_model": "bks.genex.export.wizard",
             "view_mode": "form",
             "res_id": wizard.id,

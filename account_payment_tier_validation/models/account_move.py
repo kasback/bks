@@ -5,8 +5,17 @@ from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 
 
+_BKS_FOREIGN_TRANSFER_DGI_CODE = "8"
+_BKS_MA_TRANSFER_DGI_CODE = "4"
+
+
 class AccountMove(models.Model):
     _inherit = "account.move"
+
+    l10n_ma_reports_payment_method = fields.Selection(
+        selection_add=[(_BKS_FOREIGN_TRANSFER_DGI_CODE, "Virement à l'étranger")],
+        ondelete={_BKS_FOREIGN_TRANSFER_DGI_CODE: "set null"},
+    )
 
     bks_draft_payment_name = fields.Char(
         string="Numéro de paiement",
@@ -32,6 +41,14 @@ class AccountMove(models.Model):
                 move.bks_draft_payment_name = payment_name
             else:
                 move.bks_draft_payment_name = False
+
+    @api.depends("origin_payment_id")
+    def _compute_l10n_ma_reports_payment_method(self):
+        super()._compute_l10n_ma_reports_payment_method()
+        # Le code 8 est interne. La facture et la liasse fiscale restent en virement (4).
+        for move in self:
+            if move.l10n_ma_reports_payment_method == _BKS_FOREIGN_TRANSFER_DGI_CODE:
+                move.l10n_ma_reports_payment_method = _BKS_MA_TRANSFER_DGI_CODE
 
     def _bks_blocking_matched_payments(self):
         self.ensure_one()

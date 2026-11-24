@@ -39,6 +39,36 @@ class AccountPayment(models.Model):
     bks_show_payment_order_button = fields.Boolean(
         compute="_compute_bks_payment_order_button",
     )
+    bks_fx_payment_order_generated = fields.Boolean(
+        string="Ordre de paiement à l'étranger généré",
+        copy=False,
+        readonly=True,
+        index=True,
+    )
+    bks_fx_payment_order_generated_at = fields.Datetime(
+        string="Date génération ordre à l'étranger",
+        copy=False,
+        readonly=True,
+    )
+    bks_fx_payment_order_attachment_id = fields.Many2one(
+        comodel_name="ir.attachment",
+        string="Fichier ordre de paiement à l'étranger",
+        copy=False,
+        readonly=True,
+        ondelete="set null",
+    )
+    bks_show_fx_payment_order_button = fields.Boolean(
+        compute="_compute_bks_payment_order_button",
+    )
+
+    def _bks_payment_order_ready(self):
+        self.ensure_one()
+        return bool(
+            self.bks_tier_governed
+            and self.validation_status == "validated"
+            and self.state == "in_process"
+            and self.move_id
+        )
 
     @api.depends(
         "state",
@@ -46,16 +76,22 @@ class AccountPayment(models.Model):
         "move_id",
         "bks_tier_governed",
         "bks_payment_order_generated",
+        "bks_fx_payment_order_generated",
+        "l10n_ma_reports_payment_method",
     )
     def _compute_bks_payment_order_button(self):
         for pay in self:
-            pay.bks_show_payment_order_button = (
-                pay.bks_tier_governed
-                and pay.validation_status == "validated"
-                and pay.state == "in_process"
-                and pay.move_id
-                and not pay.bks_payment_order_generated
+            ready = pay._bks_payment_order_ready()
+            foreign = (
+                pay._bks_is_foreign_transfer()
+                if hasattr(pay, "_bks_is_foreign_transfer")
+                else False
             )
+            already = (
+                pay.bks_payment_order_generated or pay.bks_fx_payment_order_generated
+            )
+            pay.bks_show_payment_order_button = ready and not foreign and not already
+            pay.bks_show_fx_payment_order_button = ready and foreign and not already
 
     @staticmethod
     def _bks_op_reference_suffix(payment, pay_date):
@@ -228,6 +264,60 @@ class AccountPayment(models.Model):
                 "bks_payment_order_generated": True,
                 "bks_payment_order_generated_at": fields.Datetime.now(),
                 "bks_payment_order_attachment_id": attachment.id,
+            }
+        )
+        if not self.genex_exported:
+            self._mark_genex_exported()
+        return {
+            "type": "ir.actions.act_url",
+            "url": "/web/content/%s?download=true" % attachment.id,
+            "target": "self",
+        }
+
+    def _bks_fx_payment_order_filename(self):
+        self.ensure_one()
+        safe_name = re.sub(r"[^\w\-]+", "_", self.name or str(self.id))
+        return "Ordre_paiement_etranger_%s.docx" % safe_name
+
+    def action_bks_print_foreign_payment_order(self):
+        self.ensure_one()
+        if self.bks_fx_payment_order_generated or self.bks_payment_order_generated:
+            raise UserError(
+                _(
+                    "L'ordre de paiement à l'étranger a déjà été généré pour ce "
+                    "règlement. Contactez la comptabilité pour le retélécharger."
+                )
+            )
+        if not self._bks_is_foreign_transfer():
+            raise UserError(
+                _(
+                    "%(name)s : l'ordre de paiement à l'étranger est réservé "
+                    "au mode Virement à l'étranger.",
+                    name=self.display_name,
+                )
+            )
+        self._bks_check_payment_order_print_eligibility()
+        wizard = self.env["bks.genex.export.wizard"].new({})
+        raw = wizard._build_ov_foreign_doc(self)
+        filename = self._bks_fx_payment_order_filename()
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": filename,
+                "type": "binary",
+                "raw": raw,
+                "res_model": self._name,
+                "res_id": self.id,
+                "mimetype": (
+                    "application/vnd.openxmlformats-officedocument."
+                    "wordprocessingml.document"
+                ),
+            }
+        )
+        self.write(
+            {
+                "bks_fx_payment_order_generated": True,
+                "bks_fx_payment_order_generated_at": fields.Datetime.now(),
+                "bks_fx_payment_order_attachment_id": attachment.id,
             }
         )
         if not self.genex_exported:

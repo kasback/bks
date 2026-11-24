@@ -31,6 +31,15 @@
                     invisible="not bks_show_payment_order_button"
                     confirm="Le téléchargement de l'ordre de paiement est unique : le fichier est enregistré sur le serveur et ce bouton disparaîtra ensuite. En cas de perte du fichier, contactez la comptabilité. Voulez-vous continuer ?"
                 />
+                <field name="bks_show_fx_payment_order_button" invisible="1" />
+                <button
+                    name="action_bks_print_foreign_payment_order"
+                    string="Ordre de paiement à l'étranger"
+                    type="object"
+                    class="btn-secondary"
+                    invisible="not bks_show_fx_payment_order_button"
+                    confirm="Le téléchargement de l'ordre de paiement à l'étranger est unique : le fichier est enregistré sur le serveur, le paiement est marqué exporté et ce bouton disparaîtra ensuite. Voulez-vous continuer ?"
+                />
             </xpath>
             <xpath expr="//group[@name='group2']" position="inside">
                 <field
@@ -50,6 +59,25 @@
                     name="bks_payment_order_attachment_id"
                     readonly="1"
                     invisible="not bks_payment_order_generated"
+                    groups="base.group_system"
+                />
+                <field
+                    name="bks_fx_payment_order_generated"
+                    string="Ordre de paiement à l'étranger généré"
+                    readonly="1"
+                    widget="boolean"
+                    groups="base.group_system"
+                />
+                <field
+                    name="bks_fx_payment_order_generated_at"
+                    readonly="1"
+                    invisible="not bks_fx_payment_order_generated"
+                    groups="base.group_system"
+                />
+                <field
+                    name="bks_fx_payment_order_attachment_id"
+                    readonly="1"
+                    invisible="not bks_fx_payment_order_generated"
                     groups="base.group_system"
                 />
                 <field
@@ -73,7 +101,7 @@
     </record>
 
     <record id="action_account_payment_genex_export" model="ir.actions.server">
-        <field name="name">Export GENEX</field>
+        <field name="name">Exporter paiement</field>
         <field name="model_id" ref="account.model_account_payment" />
         <field name="binding_model_id" ref="account.model_account_payment" />
         <field name="binding_view_types">list</field>
