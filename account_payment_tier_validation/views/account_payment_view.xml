@@ -40,8 +40,11 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_tree" />
         <field name="arch" type="xml">
+            <field name="date" position="before">
+                <field name="bks_can_edit_payment_date" column_invisible="1" />
+            </field>
             <field name="date" position="attributes">
-                <attribute name="readonly">state not in ('draft', 'in_process')</attribute>
+                <attribute name="readonly">not bks_can_edit_payment_date</attribute>
             </field>
             <field name="name" position="after">
                 <field name="payment_reference" string="Référence de paiement" optional="show" />
@@ -123,7 +126,7 @@
                 >state == 'draft' and (not name or name == '/')</attribute>
             </xpath>
             <field name="date" position="attributes">
-                <attribute name="readonly">state not in ('draft', 'in_process')</attribute>
+                <attribute name="readonly">not bks_can_edit_payment_date</attribute>
             </field>
             <field name="date" position="after">
                 <field
@@ -136,6 +139,7 @@
             </field>
             <field name="bks_show_cancel_button" position="after">
                 <field name="bks_can_edit_payment_amount" invisible="1" />
+                <field name="bks_can_edit_payment_date" invisible="1" />
             </field>
             <field name="amount" position="attributes">
                 <attribute name="readonly">not bks_can_edit_payment_amount</attribute>

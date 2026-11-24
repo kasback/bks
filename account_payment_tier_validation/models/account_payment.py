@@ -24,6 +24,9 @@ class AccountPayment(models.Model):
     bks_can_edit_payment_amount = fields.Boolean(
         compute="_compute_bks_can_edit_payment_amount",
     )
+    bks_can_edit_payment_date = fields.Boolean(
+        compute="_compute_bks_can_edit_payment_date",
+    )
 
     @api.model
     def _get_validation_exceptions(self, extra_domain=None, add_base_exceptions=True):
@@ -105,6 +108,15 @@ class AccountPayment(models.Model):
         for pay in self:
             pay.bks_can_edit_payment_amount = can and not pay._bks_amount_is_locked()
 
+    @api.depends_context("uid")
+    @api.depends("state", "move_id.state")
+    def _compute_bks_can_edit_payment_date(self):
+        can = self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_date"
+        )
+        for pay in self:
+            pay.bks_can_edit_payment_date = can and not pay._bks_date_is_locked()
+
     def _bks_amount_is_locked(self):
         self.ensure_one()
         if self.state in ("paid", "canceled", "rejected"):
@@ -148,6 +160,12 @@ class AccountPayment(models.Model):
         changing = self.filtered(lambda pay: pay.date != new_date)
         if not changing:
             return
+        if not self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_date"
+        ):
+            raise UserError(
+                _("Vous n'avez pas le droit de modifier la date du paiement.")
+            )
         locked = changing.filtered(lambda pay: pay._bks_date_is_locked())
         if locked:
             raise UserError(
@@ -159,7 +177,9 @@ class AccountPayment(models.Model):
 
     def _check_allow_write_under_validation(self, vals):
         extra = set()
-        if "date" in vals:
+        if "date" in vals and self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_date"
+        ):
             extra.add("date")
         if "amount" in vals and self.env.user.has_group(
             "account_payment_tier_validation.group_bks_payment_amount"
@@ -176,6 +196,55 @@ class AccountPayment(models.Model):
         self._bks_check_amount_edit(vals)
         self._bks_check_date_edit(vals)
         return super().write(vals)
+
+    @api.depends(
+        "reconciled_invoice_ids.payment_state",
+        "reconciled_bill_ids.payment_state",
+        "move_id.line_ids.amount_residual",
+        "move_id.state",
+    )
+    def _compute_state(self):
+        """Ne pas forcer « Payé » tant que l'écriture comptable est en brouillon.
+
+        Odoo standard passe en paid dès que le compte de liquidité n'est pas
+        lettrable (cas du compte pivot 369908). Sur le circuit BKS, l'écriture
+        reste en brouillon jusqu'à Valider : un simple changement de date
+        recalculait l'état et basculait le paiement en Payé trop tôt.
+        """
+        super()._compute_state()
+        for pay in self:
+            if (
+                pay.state == "paid"
+                and pay.move_id
+                and pay.move_id.state == "draft"
+                and pay._bks_tier_definition_applies()
+            ):
+                pay.state = "in_process"
+
+    @api.model
+    def _bks_user_can_duplicate(self):
+        return self.env.su or self.env.user.has_group(
+            "account_payment_tier_validation.group_bks_payment_duplicate"
+        )
+
+    def copy(self, default=None):
+        if not self._bks_user_can_duplicate():
+            raise UserError(
+                _("Vous n'avez pas le droit de dupliquer un paiement.")
+            )
+        return super().copy(default=default)
+
+    @api.model
+    def _get_view_cache_key(self, view_id=None, view_type="form", **options):
+        key = super()._get_view_cache_key(view_id, view_type, **options)
+        return key + (self._bks_user_can_duplicate(),)
+
+    @api.model
+    def _get_view(self, view_id=None, view_type="form", **options):
+        arch, view = super()._get_view(view_id, view_type, **options)
+        if view_type in ("form", "list") and not self._bks_user_can_duplicate():
+            arch.set("duplicate", "0")
+        return arch, view
 
     def _synchronize_to_moves(self, changed_fields):
         # L'écriture reste en brouillon en cours de traitement : la date

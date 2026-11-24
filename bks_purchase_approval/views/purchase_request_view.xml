@@ -12,11 +12,6 @@
                 >bks_purchase_approval.group_bks_da_extra_fields</attribute>
                 <attribute name="string">Type d'opération</attribute>
             </field>
-            <xpath expr="//form/chatter" position="attributes">
-                <attribute
-                    name="groups"
-                >bks_purchase_approval.group_bks_da_extra_fields</attribute>
-            </xpath>
         </field>
     </record>
 

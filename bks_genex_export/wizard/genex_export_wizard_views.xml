@@ -88,6 +88,17 @@
                         <field name="ov_file_name" readonly="1" />
                         <field name="ov_file_data" filename="ov_file_name" readonly="1" />
                     </group>
+                    <group
+                        string="Ordre de virement à l'étranger"
+                        invisible="not ov_fx_file_data"
+                    >
+                        <field name="ov_fx_file_name" readonly="1" />
+                        <field
+                            name="ov_fx_file_data"
+                            filename="ov_fx_file_name"
+                            readonly="1"
+                        />
+                    </group>
                 </group>
                 <footer>
                     <button
